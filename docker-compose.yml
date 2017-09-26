@@ -1,0 +1,20 @@
+version: '2'
+
+networks:
+  autodeploy:
+
+services:
+  autodeploy:
+    build: .
+    networks:
+      - autodeploy
+    depends_on:
+      - database
+
+  database:
+    image: "mysql:5.5"
+    networks:
+      - autodeploy
+    restart: on-failure
+    environment:
+      - MYSQL_ROOT_PASSWORD=pw4root

@@ -1,0 +1,6 @@
+{
+  "host":     "database",
+  "username": "root",
+  "password": "pw4root",
+  "database": "autodeploy"
+}
