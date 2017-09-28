@@ -37,4 +37,16 @@ The `bundle` binary is stubbed in these test environments. Check out
 
 ## Using (automated testing/deployment for apps)
 
-In the app root, run `/path/to/autodeploy/ci.bash`.
+First, you need to have a file in your home directory called `autodeploy.json`.
+This describes the MYSQL database in which spec and deployment results will be dumped.
+
+```json
+{
+  "host":     "database",
+  "username": "root",
+  "password": "pw4root",
+  "database": "autodeploy"
+}
+```
+
+Once that's set up, cd to the root of the project you want to deploy and run `/path/to/autodeploy/ci.bash`.
