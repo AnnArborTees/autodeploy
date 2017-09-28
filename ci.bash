@@ -17,7 +17,9 @@ if [ "$DELAY_BETWEEN_PULLS" == "" ]
 then
   export DELAY_BETWEEN_PULLS="10"
 fi
-RSPEC_ARGS="--format d --color   spec/models/job_spec.rb" # TODO the literal file here is for testing
+
+RSPEC_ARGS="--format d --color"
+CAP_ARGS="production deploy"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DIR="$1"
 APP_NAME="$(basename $DIR)"
@@ -32,7 +34,7 @@ function getcommit {
 }
 
 # Runs the "db.rb" script
-db="ruby $SCRIPT_DIR/db.rb"
+db="ruby $SCRIPT_DIR/lib/db.rb"
 
 
 #
@@ -91,27 +93,48 @@ do
 
 
   #
-  # Run rspec
+  # Run rspec (pipe rspec into record-specs)
   #
   echo "Running \`rspec $RSPEC_ARGS\`"
 
   bundle exec rspec $RSPEC_ARGS | $db record-specs $run_id
   specs_passed="$?"
 
+  #
+  # Deploy if specs passed
+  #
   if [ "$specs_passed" == "0" ]
   then
-    echo "Passed!"
-    # TODO deploy now
+    echo "SPECS PASSED -- deploying now"
+    $db spec-status $run_id specs_passed
+
+    #
+    # Pipe deploy script into record-deploy
+    #
+    bundle exec cap $CAP_ARGS | $db record-deploy $run_id
+    deployed="$?"
+
+    #
+    # Update status to reflect deployment result
+    #
+    if [ "$deployed" == "0" ]
+    then
+      echo "DEPLOY SUCCEEDED"
+      $db spec-status $run_id deployed
+    else
+      echo "DEPLOY FAILED"
+      $db spec-status $run_id deploy_failed
+    fi
   else
     echo "SPECS FAILED"
-    # TODO update that DB table
+    $db spec-status $run_id specs_failed
   fi
 
 
   #
   # If this was a forced run, we probably don't want to repeatedly deploy
   #
-  if [ "$1" == "--force" ]; then
+  if [ "$2" == "--force" ] || [ "$2" == "--once" ]; then
     exit $specs_passed
   fi
 done
