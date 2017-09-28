@@ -1,3 +1,3 @@
 #!/bin/sh
 docker-compose build
-exec docker-compose run autodeploy
+exec docker-compose run interactive

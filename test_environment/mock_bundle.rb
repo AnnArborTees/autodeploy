@@ -1,8 +1,16 @@
 #!/usr/local/bin/ruby
-puts "\033[0;31m*** Bundle called with args: #{ARGV}\033[0m"
+load "/bundle_stub.rb"
 
-if ARGV[1] == 'rspec'
+stub_rspec do
   puts "Looks like rspec! Let's pretend the specs passed."
-elsif ARGV[1] == 'cap'
+end
+
+stub_cap do
   puts "Looks like capistrano! Let's pretend we've deployed successfully"
+end
+
+verify do
+  expect "status: deployed"
+  expect "Looks like rspec! Let's pretend the specs passed."
+  expect "Looks like capistrano! Let's pretend we've deployed successfully"
 end
