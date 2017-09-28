@@ -13,5 +13,5 @@ end
 verify do
   expect "status: specs_failed"
   expect "Looks like rspec! These specs FAIL."
-  expect "Looks like capistrano!"
+  reject "Looks like capistrano!"
 end

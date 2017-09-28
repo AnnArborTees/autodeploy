@@ -23,13 +23,23 @@ def verify(&block)
 
   else
     if ARGV[0] == 'verify'
+      def fail_verification(msg)
+        puts "\033[0;41mVERIFICATION FAILED\033[0m"
+        puts ARGV[1]
+        puts "--------------------------------------------------------------"
+        puts msg
+        exit 1
+      end
+
       def expect(substring)
         unless ARGV[1].include?(substring)
-          puts "\033[0;41mVERIFICATION FAILED\033[0m"
-          puts ARGV[1]
-          puts "--------------------------------------------------------------"
-          puts "Expected to contain \"#{substring}\", but didn't."
-          exit 1
+          fail_verification "Expected to contain \"#{substring}\", but didn't."
+        end
+      end
+
+      def reject(substring)
+        if ARGV[1].include?(substring)
+          fail_verification "Expected to NOT contain \"#{substring}\", but did."
         end
       end
 

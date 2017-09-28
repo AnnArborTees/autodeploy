@@ -1,3 +1,10 @@
 #!/bin/sh
-docker-compose build
-exec docker-compose run interactive
+
+service="$1"
+if [ "$service" == "" ]
+then
+  service=interactive
+fi
+
+docker-compose build $service
+exec docker-compose run $service bash

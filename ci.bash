@@ -5,7 +5,10 @@
 #   pull.bash <path-to-app-root> [--force]
 #
 
-set -e #=================FAIL ON ERROR=================
+# Fail on error
+set -e
+# Fail when the first process in a pipe fails
+set -o pipefail
 
 if [ "$1" == "" ]
 then
@@ -94,30 +97,20 @@ do
 
   #
   # Run rspec (pipe rspec into record-specs)
+  # and deploy if it passes
   #
   echo "Running \`rspec $RSPEC_ARGS\`"
 
-  bundle exec rspec $RSPEC_ARGS | $db record-specs $run_id
-  specs_passed="$?"
-
-  #
-  # Deploy if specs passed
-  #
-  if [ "$specs_passed" == "0" ]
+  if bundle exec rspec $RSPEC_ARGS | $db record-specs $run_id
   then
     echo "SPECS PASSED -- deploying now"
     $db spec-status $run_id specs_passed
 
     #
     # Pipe deploy script into record-deploy
+    # and update status to reflect deployment result
     #
-    bundle exec cap $CAP_ARGS | $db record-deploy $run_id
-    deployed="$?"
-
-    #
-    # Update status to reflect deployment result
-    #
-    if [ "$deployed" == "0" ]
+    if bundle exec cap $CAP_ARGS | $db record-deploy $run_id
     then
       echo "DEPLOY SUCCEEDED"
       $db spec-status $run_id deployed
