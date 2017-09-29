@@ -29,4 +29,5 @@ tmux send-keys "export DISPLAY=':0'" C-m
 tmux send-keys "cd '${SCRIPT_DIR}'" C-m
 tmux send-keys "./ci.bash '${app_path}'" C-m
 
-echo "Run \`tmux a -t ${name}:0.0\` to attach!!!"
+echo "Run \`tmux a -t ${name}:0.0\` to attach."
+echo "Once attached, press Ctrl+B and then D to detach."
