@@ -22,7 +22,7 @@ tmux select-window -t "${name}:0"
 tmux split-window -h
 
 tmux select-pane -t 0
-tmux send-keys "cd ${SCRIPT_DIR}" C-m
+tmux send-keys "cd ${app_path}" C-m
 
 tmux select-pane -t 1
 tmux send-keys "export DISPLAY=':0'" C-m
