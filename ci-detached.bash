@@ -13,6 +13,11 @@ then
   bad_args
 fi
 
+if [ "$RUBY" == "" ]
+then
+  RUBY="$(rvm current)"
+fi
+
 # NOTE this basename probably shouldn't have any spaces in it
 name="$(basename $app_path)"
 
@@ -21,6 +26,8 @@ then
   tmux kill-session -t "$name"
   exit $?
 else
+  echo "Starting CI session with ruby version '$RUBY'"
+
   tmux kill-session -t "$name" &> /dev/null
   tmux new-session -dA -s "$name"
   tmux select-window -t "${name}:0"
@@ -30,10 +37,11 @@ else
   tmux send-keys "cd ${app_path}" C-m
 
   tmux select-pane -t 1
-  tmux send-keys "export DISPLAY=':0'" C-m
-  tmux send-keys "cd '${SCRIPT_DIR}'" C-m
-  tmux send-keys 'eval $(ssh-agent -s)' C-m
-  tmux send-keys "ssh-add ssh/*.pem" C-m
+  tmux send-keys "export DISPLAY=':0'"     C-m
+  tmux send-keys "rvm use ${RUBY}"         C-m
+  tmux send-keys "cd '${SCRIPT_DIR}'"      C-m
+  tmux send-keys 'eval $(ssh-agent -s)'    C-m
+  tmux send-keys "ssh-add ssh/*.pem"       C-m
   tmux send-keys "./ci.bash '${app_path}'" C-m
 
   echo "Run \`tmux a -t ${name}:0.0\` to attach."
