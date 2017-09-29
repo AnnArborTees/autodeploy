@@ -16,20 +16,25 @@ fi
 # NOTE this basename probably shouldn't have any spaces in it
 name="$(basename $app_path)"
 
-tmux kill-session -t "$name" &> /dev/null
-tmux new-session -dA -s "$name"
-tmux select-window -t "${name}:0"
-tmux split-window -h
+if [ "$2" == "--kill" ]
+then
+  tmux kill-session -t "$name"
+else
+  tmux kill-session -t "$name" &> /dev/null
+  tmux new-session -dA -s "$name"
+  tmux select-window -t "${name}:0"
+  tmux split-window -h
 
-tmux select-pane -t 0
-tmux send-keys "cd ${app_path}" C-m
+  tmux select-pane -t 0
+  tmux send-keys "cd ${app_path}" C-m
 
-tmux select-pane -t 1
-tmux send-keys "export DISPLAY=':0'" C-m
-tmux send-keys "cd '${SCRIPT_DIR}'" C-m
-tmux send-keys 'eval $(ssh-agent -s)' C-m
-tmux send-keys "ssh-add ssh/*.pem" C-m
-tmux send-keys "./ci.bash '${app_path}'" C-m
+  tmux select-pane -t 1
+  tmux send-keys "export DISPLAY=':0'" C-m
+  tmux send-keys "cd '${SCRIPT_DIR}'" C-m
+  tmux send-keys 'eval $(ssh-agent -s)' C-m
+  tmux send-keys "ssh-add ssh/*.pem" C-m
+  tmux send-keys "./ci.bash '${app_path}'" C-m
 
-echo "Run \`tmux a -t ${name}:0.0\` to attach."
-echo "Once attached, press Ctrl+B and then D to detach."
+  echo "Run \`tmux a -t ${name}:0.0\` to attach."
+  echo "Once attached, press Ctrl+B and then D to detach."
+fi
