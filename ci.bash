@@ -6,7 +6,7 @@
 #
 
 # Fail on error
-set -e
+#set -e
 # Fail when the first process in a pipe fails
 set -o pipefail
 
