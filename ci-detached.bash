@@ -18,12 +18,6 @@ then
   RUBY="$(rvm current)"
 fi
 
-if [ "$PID_DIR" == "" ]
-then
-  PID_DIR="${SCRIPT_DIR}/pids"
-  mkdir -p "$PID_DIR"
-fi
-
 # NOTE this basename probably shouldn't have any spaces in it
 name="$(basename $app_path)"
 
@@ -32,7 +26,7 @@ then
   tmux kill-session -t "$name"
   exit $?
 else
-  echo "Starting CI session with ruby version '$RUBY'"
+  echo "Starting CI session with ruby version $RUBY"
 
   tmux kill-session -t "$name" &> /dev/null
   tmux new-session -dA -s "$name"
@@ -43,14 +37,12 @@ else
   tmux send-keys "cd ${app_path}" C-m
 
   tmux select-pane -t 1
-  tmux send-keys "export DISPLAY=':0'"                C-m
-  tmux send-keys "rvm use ${RUBY}"                    C-m
-  tmux send-keys "cd '${SCRIPT_DIR}'"                 C-m
-  tmux send-keys 'eval $(ssh-agent -s)'               C-m
-  tmux send-keys "ssh-add ssh/*.pem"                  C-m
-  tmux send-keys "./ci.bash '${app_path}' &"          C-m
-  tmux send-keys 'echo $! > '"${PID_DIR}/${name}.pid" C-m
-  tmux send-keys 'fg'                                 C-m
+  tmux send-keys "export DISPLAY=':0'"     C-m
+  tmux send-keys "rvm use ${RUBY}"         C-m
+  tmux send-keys "cd '${SCRIPT_DIR}'"      C-m
+  tmux send-keys 'eval $(ssh-agent -s)'    C-m
+  tmux send-keys "ssh-add ssh/*.pem"       C-m
+  tmux send-keys "./ci.bash '${app_path}'" C-m
 
   echo "Run \`tmux a -t ${name}:0.0\` to attach."
   echo "Once attached, press Ctrl+B and then D to detach."
