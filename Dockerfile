@@ -18,6 +18,8 @@ RUN mkdir -p /home
 WORKDIR /home
 ENV HOME /home
 COPY ./test_environment/tmux.conf /home/.tmux.conf
+RUN mkdir -p /home/ssh
+COPY ./ssh/* /home/ssh/
 
 # Test app and mock bundle
 RUN mkdir -p /gitstuff/test_app_remote
