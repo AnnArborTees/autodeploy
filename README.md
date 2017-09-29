@@ -15,6 +15,8 @@ with a fake git repository that can be fast-forwarded.
 sudo ./verify.sh
 ```
 
+It takes some time -- especially on the first run, since it has to build the containers.
+
 #### Open interactive test environment:
 
 ```bash
@@ -42,11 +44,31 @@ This describes the MYSQL database in which spec and deployment results will be d
 
 ```json
 {
-  "host":     "database",
+  "host":     "172.45.46.47",
   "username": "root",
-  "password": "pw4root",
+  "password": "good-password",
   "database": "autodeploy"
 }
 ```
 
-Once that's set up, cd to the root of the project you want to deploy and run `/path/to/autodeploy/ci.bash`.
+(Note that the database must already exist)
+
+### Running in-place
+```bash
+./ci.bash /path/to/project-root/
+```
+
+### Running detached
+```bash
+./ci-detached.bash /path/to/project-root/
+```
+
+## VPN notes
+
+Not directly related to this system, but ...
+
+``` bash
+sudo apt-get install network-manager-openvpn network-manager-openvpn-gnome networkmanager-pptp network-manager-vpnc
+```
+
+Then network manager should be able to import .ovpn files.

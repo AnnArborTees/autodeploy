@@ -6,7 +6,7 @@ ARG mockbundle=mock_bundle.rb
 
 # Debian packages
 RUN apt-get update
-RUN apt-get install -y mysql-client vim
+RUN apt-get install -y mysql-client vim tmux
 
 # Ruby gems
 RUN gem install json --no-ri --no-rdoc
@@ -17,6 +17,7 @@ RUN gem install byebug --no-ri --no-rdoc
 RUN mkdir -p /home
 WORKDIR /home
 ENV HOME /home
+COPY ./test_environment/tmux.conf /home/.tmux.conf
 
 # Test app and mock bundle
 RUN mkdir -p /gitstuff/test_app_remote
@@ -44,5 +45,6 @@ COPY ./test_environment/autodeploy.json /home/autodeploy.json
 COPY ./ci.bash /home/ci.bash
 COPY ./lib /home/lib
 COPY ./test_environment/show_last_run.bash /home/show_last_run.bash
+COPY ./ci-detached.bash ci-detached.bash
 
 CMD ./ci.bash test_app --once && bundle verify "$(./show_last_run.bash)"
