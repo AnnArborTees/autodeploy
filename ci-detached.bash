@@ -19,6 +19,7 @@ name="$(basename $app_path)"
 if [ "$2" == "--kill" ]
 then
   tmux kill-session -t "$name"
+  exit $?
 else
   tmux kill-session -t "$name" &> /dev/null
   tmux new-session -dA -s "$name"
