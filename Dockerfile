@@ -12,6 +12,7 @@ RUN apt-get install -y mysql-client vim tmux
 RUN gem install json --no-ri --no-rdoc
 RUN gem install mysql2 --no-ri --no-rdoc
 RUN gem install byebug --no-ri --no-rdoc
+RUN gem install sanitize --no-ri --no-rdoc
 
 # Home directory
 RUN mkdir -p /home
