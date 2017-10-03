@@ -3,7 +3,7 @@
 require 'mysql2'
 require 'json'
 require 'strscan'
-require 'sanitize'
+require 'cgi'
 
 # ================================
 # Contains helper methods that are not commands
@@ -40,7 +40,7 @@ module Util
 
   def sanitize(input)
     # Get rid of bash color codes (adopted from https://stackoverflow.com/a/19890227)
-    input = Sanitize.fragment(input, Sanitize::Config::RELAXED)
+    input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
     html = StringIO.new
     until ansi.eos?
