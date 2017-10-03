@@ -76,9 +76,23 @@ do
   old_commit="$new_commit"
 
   #
+  # See if another instance has already handled this commit
+  #
+  if $db check-commit "$APP_NAME" "$new_commit"
+  then
+    echo "Beginning run for $new_commit"
+  else
+    echo "Run already exists for $new_commit"
+    if [ "$2" != "--force" ] && [ "$2" != "--once" ]
+    then
+      continue
+    fi
+  fi
+
+  #
   # Create a db entry
   #
-  run_id="$($db new-run "$APP_NAME" "master")"
+  run_id="$($db new-run "$APP_NAME" "master" "$new_commit")"
 
   #
   # Bundle install and migrate

@@ -3,6 +3,7 @@
 require 'mysql2'
 require 'json'
 require 'strscan'
+require 'byebug'
 
 # ================================
 # Contains helper methods that are not commands
@@ -54,6 +55,10 @@ module Util
     # Escape for SQL
     @client.escape(html.string)
   end
+
+  def sanitize_commit(commit)
+    sanitize(commit.gsub("commit ", ''))
+  end
 end
 
 # ================================
@@ -92,6 +97,7 @@ class Command
         "app           varchar(255) NOT NULL, "\
         "branch        varchar(255) NOT NULL, "\
         "status        varchar(255) NOT NULL, "\
+        "commit        varchar(255) NOT NULL, "\
         "created_at        datetime, "\
         "specs_started_at  datetime, "\
         "specs_ended_at    datetime, "\
@@ -106,15 +112,28 @@ class Command
   # ================================
   # Creates a new run and outputs its ID for future commands
   # --------------------------------
-  def new_run(app, branch)
+  def new_run(app, branch, commit)
     app    = sanitize(app)
     branch = sanitize(branch)
+    commit = sanitize_commit(commit)
 
     @client.query(
-      "INSERT INTO runs (app, branch, created_at, status) "\
-      "VALUES ('#{app}', '#{branch}', NOW(), 'initialized')"
+      "INSERT INTO runs (app, branch, commit, created_at, status) "\
+      "VALUES ('#{app}', '#{branch}', '#{commit}', NOW(), 'initialized')"
     )
     puts @client.last_id.to_s
+  end
+
+  # ================================
+  # Exits with nonzero return code if there already exists
+  # a build with the given app and commit.
+  # --------------------------------
+  def check_commit(app, commit)
+    app    = sanitize(app)
+    commit = sanitize_commit(commit)
+
+    result = @client.query("SELECT COUNT(*) FROM runs WHERE app = '#{app}' AND commit = '#{commit}'")
+    exit result.to_a.first.values.first
   end
 
   # ================================
