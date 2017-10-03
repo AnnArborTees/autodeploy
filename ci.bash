@@ -114,7 +114,7 @@ do
   #
   echo "Running \`rspec $RSPEC_ARGS\`"
 
-  if bundle exec rspec $RSPEC_ARGS | $db record-specs $run_id
+  if bundle exec rspec $RSPEC_ARGS |& $db record-specs $run_id
   then
     echo "SPECS PASSED -- deploying now"
     $db spec-status $run_id specs_passed
@@ -123,7 +123,7 @@ do
     # Pipe deploy script into record-deploy
     # and update status to reflect deployment result
     #
-    if bundle exec cap $CAP_ARGS | $db record-deploy $run_id
+    if bundle exec cap $CAP_ARGS |& $db record-deploy $run_id
     then
       echo "DEPLOY SUCCEEDED"
       $db spec-status $run_id deployed

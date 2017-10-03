@@ -173,6 +173,7 @@ class Command
         loop do
           total_input = ""
           total_input += input_queue.pop until input_queue.empty?
+
           if total_input.empty?
             break if done
             next sleep 0.1
