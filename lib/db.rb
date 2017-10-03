@@ -192,9 +192,9 @@ class Command
         input_queue << input
       end
 
-      @client.query("UPDATE runs SET status = '#{operation}_ended', #{operation}_ended_at = NOW() WHERE id = #{run_id}")
       done = true
       input_sender.join
+      @client.query("UPDATE runs SET status = '#{operation}_ended', #{operation}_ended_at = NOW() WHERE id = #{run_id}")
     end
   end
 
