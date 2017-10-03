@@ -166,17 +166,34 @@ class Command
         "WHERE id = #{run_id}"
       )
 
+      input_queue = Queue.new
+      done = false
+
+      input_sender = Thread.new do
+        loop do
+          total_input = ""
+          total_input += input_queue.pop until input_queue.empty?
+          if total_input.empty?
+            break if done
+            next sleep 0.1
+          end
+
+          @client.query(
+            "UPDATE runs SET #{output_field} = " \
+            "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
+            "WHERE id = #{run_id}"
+          )
+        end
+      end
+
       while (input = STDIN.gets)
         puts input
-
-        @client.query(
-          "UPDATE runs SET #{output_field} = " \
-          "CONCAT(#{output_field}, '#{sanitize(input)}') " \
-          "WHERE id = #{run_id}"
-        )
+        input_queue << input
       end
 
       @client.query("UPDATE runs SET status = '#{operation}_ended', #{operation}_ended_at = NOW() WHERE id = #{run_id}")
+      done = true
+      input_sender.join
     end
   end
 
