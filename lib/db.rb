@@ -4,6 +4,7 @@ require 'mysql2'
 require 'json'
 require 'strscan'
 require 'cgi'
+require 'socket'
 
 # ================================
 # Contains helper methods that are not commands
@@ -39,6 +40,8 @@ module Util
   end
 
   def sanitize(input)
+    return '' if input.nil?
+
     # Get rid of bash color codes (adopted from https://stackoverflow.com/a/19890227)
     input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
@@ -59,6 +62,16 @@ module Util
 
   def sanitize_commit(commit)
     sanitize(commit.gsub("commit ", ''))
+  end
+
+  # TODO this is sorta hardcoded to match our AWS VPC settings.
+  def own_ip_address
+    Socket
+      .ip_address_list
+      .select { |ip| ip.ipv4_private? }
+      .map { |ip| ip.getnameinfo.first }
+      .select { |ip| ip =~ /^10\.85/ || ip =~ /^10\.0/ }
+      .first
   end
 end
 
@@ -99,6 +112,7 @@ class Command
         "branch        varchar(255) NOT NULL, "\
         "status        varchar(255) NOT NULL, "\
         "commit        varchar(255) NOT NULL, "\
+        "runner_ip     varchar(255), "\
         "created_at        datetime, "\
         "specs_started_at  datetime, "\
         "specs_ended_at    datetime, "\
@@ -117,10 +131,11 @@ class Command
     app    = sanitize(app)
     branch = sanitize(branch)
     commit = sanitize_commit(commit)
+    ip     = sanitize(own_ip_address)
 
     @client.query(
-      "INSERT INTO runs (app, branch, commit, created_at, status) "\
-      "VALUES ('#{app}', '#{branch}', '#{commit}', NOW(), 'initialized')"
+      "INSERT INTO runs (app, branch, commit, created_at, status, runner_ip) "\
+      "VALUES ('#{app}', '#{branch}', '#{commit}', NOW(), 'initialized', '#{ip}')"
     )
     puts @client.last_id.to_s
   end
@@ -225,9 +240,10 @@ end
 begin
   command.send(action, *ARGV[1..-1])
 rescue => e
-  puts "=== ERROR DURING ACTION: #{ARGV[0]} #{ARGV[1..-1]} ==="
-  puts "#{e.class}: #{e.message}"
+  STDERR.puts "=== ERROR DURING ACTION: #{ARGV[0]} #{ARGV[1..-1]} ==="
+  STDERR.puts "#{e.class}: #{e.message}"
   e.backtrace.each do |line|
-    puts " * #{line}"
+    STDERR.puts " * #{line}"
   end
+  exit(111)
 end
