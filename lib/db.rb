@@ -73,6 +73,10 @@ module Util
       .select { |ip| ip =~ /^10\.85/ || ip =~ /^10\.0/ }
       .first
   end
+
+  def local_username
+    ENV['USER'] || ENV['USERNAME']
+  end
 end
 
 # ================================
@@ -131,7 +135,7 @@ class Command
     app    = sanitize(app)
     branch = sanitize(branch)
     commit = sanitize_commit(commit)
-    ip     = sanitize(own_ip_address)
+    ip     = sanitize("#{local_username}@#{own_ip_address}")
 
     @client.query(
       "INSERT INTO runs (app, branch, commit, created_at, status, runner_ip) "\
