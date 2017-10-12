@@ -99,7 +99,7 @@ do
   #
   # Bundle install and migrate
   #
-  if bundle install && bundle exec rake db:migrate
+  if bundle install && bundle exec rake db:create db:migrate
   then
     echo "Setup complete"
   else
