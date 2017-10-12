@@ -68,6 +68,7 @@ do
   while [ "$old_commit" == "$new_commit" ] && [ "$2" != "--force" ]
   do
     sleep $DELAY_BETWEEN_PULLS
+    git reset --hard &> /dev/null
     git pull &> /dev/null
 
     new_commit="$(getcommit)"
@@ -89,8 +90,9 @@ do
     fi
   fi
 
+
   #
-  # Create a db entry
+  # Create a db entry for this run
   #
   run_id="$($db new-run "$APP_NAME" "master" "$new_commit")"
 
@@ -105,7 +107,6 @@ do
     echo "Run failed setup"
     continue
   fi
-
 
 
   #
@@ -135,7 +136,6 @@ do
     echo "SPECS FAILED"
     $db spec-status $run_id specs_failed
   fi
-
 
   #
   # If this was a forced run, we probably don't want to repeatedly deploy
