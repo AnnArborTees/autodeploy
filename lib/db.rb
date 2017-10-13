@@ -259,20 +259,14 @@ class Command
     run_rspec = lambda do |file, failures|
       _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
 
-      looking_for_failures = false
-
       while (input = output.gets)
         puts input
         input_queue << input
 
         # If second arg is an array, fill it with the file paths of failed specs
         unless failures.nil?
-          if looking_for_failures
-            if /^rspec\s+(?<rspec_cmd>[\w\.\/:]+)/ =~ input
-              failures << rspec_cmd
-            end
-          else
-            looking_for_failures = true if input.strip == "Failed examples:"
+          if /^rspec\s+(?<rspec_cmd>[\w\.\/:]+)/ =~ input.strip
+            failures << rspec_cmd
           end
         end
       end
@@ -284,12 +278,15 @@ class Command
     failed_specs = []
     everything_passed = run_rspec.('spec', failed_specs)
 
-    unless everything_passed
+    if !everything_passed && failed_specs.empty?
+      puts "ERROR: RSpecs failed, but no failed specs were detected!"
+
+    elsif !everything_passed
       # Run all failed specs individually (assume success and say failure if any fail)
       everything_passed = true
 
       failed_specs.each do |failed_spec|
-        everything_passed = false if !run_rspec.(failed_spec)
+        everything_passed = false if !run_rspec.(failed_spec, nil)
       end
     end
 
