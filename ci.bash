@@ -41,6 +41,11 @@ function getauthor {
   git log -n 1 | ruby -e 'while g = gets; break if g.include?("Author:"); end; puts g.split(/\s/, 2).last'
 }
 
+# Outputs the full commit message
+function getmessage {
+  git log -n 1 | ruby -e 'while g = gets; break if g.strip.empty?; end; while g = gets; puts g; end'
+}
+
 # Runs the "db.rb" script
 db="ruby $SCRIPT_DIR/lib/db.rb"
 
@@ -99,7 +104,7 @@ do
   #
   # Create a db entry for this run
   #
-  run_id="$($db new-run "$APP_NAME" "master" "$new_commit" "$(getauthor)")"
+  run_id="$($db new-run "$APP_NAME" "master" "$new_commit" "$(getauthor)" "$(getmessage)")"
 
   #
   # Bundle install and migrate
