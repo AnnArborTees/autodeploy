@@ -118,13 +118,13 @@ class Command
         "commit        varchar(255) NOT NULL, "\
         "runner_ip     varchar(255), "\
         "author        varchar(255), "\
-        "message       varchar(255), "\
         "created_at        datetime, "\
         "specs_started_at  datetime, "\
         "specs_ended_at    datetime, "\
         "deploy_started_at datetime, "\
         "deploy_ended_at   datetime, "\
         "spec_output       longtext, "\
+        "message           longtext, "\
         "deploy_output     longtext"\
       ")"
     )
