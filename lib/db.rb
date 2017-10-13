@@ -230,7 +230,7 @@ class Command
     run_id = sanitize(run_id)
 
     @client.query(
-      "UPDATE runs SET status = 'specs_started', specs_started_at = NOW(), #{output_field} = '' " \
+      "UPDATE runs SET status = 'specs_started', specs_started_at = NOW(), spec_output = '' " \
       "WHERE id = #{run_id}"
     )
 
@@ -248,8 +248,8 @@ class Command
         end
 
         @client.query(
-          "UPDATE runs SET #{output_field} = " \
-          "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
+          "UPDATE runs SET spec_output = " \
+          "CONCAT(spec_output, '#{sanitize(total_input)}') " \
           "WHERE id = #{run_id}"
         )
       end
