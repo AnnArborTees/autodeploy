@@ -38,7 +38,7 @@ function getcommit {
 
 # Outputs "Chet McGillicutty <chet@annarbortees.com>"
 function getauthor {
-  git log -n 1 | ruby -e 'gets; i = gets; puts i.split(/\s/, 2).last'
+  git log -n 1 | ruby -e 'while g = gets; break if g.include?("Author:"); end; puts g.split(/\s/, 2).last'
 }
 
 # Runs the "db.rb" script
