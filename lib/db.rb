@@ -5,6 +5,7 @@ require 'json'
 require 'strscan'
 require 'cgi'
 require 'socket'
+require 'open3'
 
 # ================================
 # Contains helper methods that are not commands
@@ -219,6 +220,84 @@ class Command
       input_sender.join
       @client.query("UPDATE runs SET status = '#{operation}_ended', #{operation}_ended_at = NOW() WHERE id = #{run_id}")
     end
+  end
+
+  # ================================
+  # Hacky workaround for randomly failing specs:
+  # run rspec normally then run all failures individually.
+  # --------------------------------
+  def rspec_workaround(run_id, *args)
+    run_id = sanitize(run_id)
+
+    @client.query(
+      "UPDATE runs SET status = 'specs_started', specs_started_at = NOW(), #{output_field} = '' " \
+      "WHERE id = #{run_id}"
+    )
+
+    input_queue = Queue.new
+    done = false
+
+    input_sender = Thread.new do
+      loop do
+        total_input = ""
+        total_input += input_queue.pop until input_queue.empty?
+
+        if total_input.empty?
+          break if done
+          next sleep 0.1
+        end
+
+        @client.query(
+          "UPDATE runs SET #{output_field} = " \
+          "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
+          "WHERE id = #{run_id}"
+        )
+      end
+    end
+
+    # Returns true if rspec completed successfully
+    run_rspec = lambda do |file, failures|
+      _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
+
+      looking_for_failures = false
+
+      while (input = output.gets)
+        puts input
+        input_queue << input
+
+        # If second arg is an array, fill it with the file paths of failed specs
+        unless failures.nil?
+          if looking_for_failures
+            if /^rspec\s+(?<rspec_cmd>[\w\.\/:]+)/ =~ input
+              failures << rspec_cmd
+            end
+          else
+            looking_for_failures = true if input.strip == "Failed examples:"
+          end
+        end
+      end
+
+      process.value.success?
+    end
+
+    # First run all specs, then run failed specs individually
+    failed_specs = []
+    everything_passed = run_rspec.('spec', failed_specs)
+
+    unless everything_passed
+      # Run all failed specs individually (assume success and say failure if any fail)
+      everything_passed = true
+
+      failed_specs.each do |failed_spec|
+        everything_passed = false if !run_rspec.(failed_spec)
+      end
+    end
+
+    done = true
+    input_sender.join
+    @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
+
+    exit everything_passed ? 0 : 1
   end
 
   # ================================

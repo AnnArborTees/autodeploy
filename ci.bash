@@ -125,7 +125,7 @@ do
   #
   echo "Running \`rspec $RSPEC_ARGS\`"
 
-  if bundle exec rspec $RSPEC_ARGS |& $db record-specs $run_id
+  if $db rspec-workaround $run_id $RSPEC_ARGS
   then
     echo "SPECS PASSED -- deploying now"
     $db spec-status $run_id specs_passed
