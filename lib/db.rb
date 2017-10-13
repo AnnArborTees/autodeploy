@@ -117,6 +117,7 @@ class Command
         "status        varchar(255) NOT NULL, "\
         "commit        varchar(255) NOT NULL, "\
         "runner_ip     varchar(255), "\
+        "author        varchar(255), "\
         "created_at        datetime, "\
         "specs_started_at  datetime, "\
         "specs_ended_at    datetime, "\
@@ -131,15 +132,16 @@ class Command
   # ================================
   # Creates a new run and outputs its ID for future commands
   # --------------------------------
-  def new_run(app, branch, commit)
+  def new_run(app, branch, commit, author)
     app    = sanitize(app)
     branch = sanitize(branch)
     commit = sanitize_commit(commit)
     ip     = sanitize("#{local_username}@#{own_ip_address}")
+    author = sanitize(author)
 
     @client.query(
-      "INSERT INTO runs (app, branch, commit, created_at, status, runner_ip) "\
-      "VALUES ('#{app}', '#{branch}', '#{commit}', NOW(), 'initialized', '#{ip}')"
+      "INSERT INTO runs (app, branch, commit, author, created_at, status, runner_ip) "\
+      "VALUES ('#{app}', '#{branch}', '#{commit}', '#{author}', NOW(), 'initialized', '#{ip}')"
     )
     puts @client.last_id.to_s
   end

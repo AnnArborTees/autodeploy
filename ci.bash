@@ -36,6 +36,11 @@ function getcommit {
   git show HEAD | head -n 1
 }
 
+# Outputs "Chet McGillicutty <chet@annarbortees.com>"
+function getauthor {
+  git log -n 1 | ruby -e 'gets; i = gets; puts i.split(/\s/, 2).last'
+}
+
 # Runs the "db.rb" script
 db="ruby $SCRIPT_DIR/lib/db.rb"
 
@@ -94,7 +99,7 @@ do
   #
   # Create a db entry for this run
   #
-  run_id="$($db new-run "$APP_NAME" "master" "$new_commit")"
+  run_id="$($db new-run "$APP_NAME" "master" "$new_commit" "$(getauthor)")"
 
   #
   # Bundle install and migrate
