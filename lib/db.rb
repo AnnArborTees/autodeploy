@@ -43,7 +43,7 @@ module Util
   def sanitize(input)
     return '' if input.nil?
 
-    # Get rid of bash color codes (adopted from https://stackoverflow.com/a/19890227)
+    # Replace bash color codes with html (adopted from https://stackoverflow.com/a/19890227)
     input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
     html = StringIO.new
@@ -59,6 +59,22 @@ module Util
 
     # Escape for SQL
     @client.escape(html.string)
+  end
+
+  def uncolor(input)
+    # Get rid of bash color codes (adopted from https://stackoverflow.com/a/19890227)
+    input = CGI::escapeHTML(input)
+    ansi = StringScanner.new(input)
+    html = StringIO.new
+    until ansi.eos?
+      if ansi.scan(/\e\[0?m/)
+        # Nothing
+      elsif ansi.scan(/\e\[0?;?(\d+)m/)
+        # Nothing
+      else
+        html.print(ansi.scan(/./m))
+      end
+    end
   end
 
   def sanitize_commit(commit)
@@ -260,14 +276,19 @@ class Command
     run_rspec = lambda do |file, look_for_failures|
       _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
 
+      at_end = false
+
       while (input = output.gets)
         puts input
         input_queue << input
 
         # If second arg is an array, fill it with the file paths of failed specs
         if look_for_failures
-          if /^rspec\s+(?<rspec_cmd>[\w\.\/:]+)/ =~ input.strip
-            failed_specs << rspec_cmd
+          if !at_end
+            at_end = input.include?("Failed examples:")
+
+          elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ uncolor(input.strip)
+            failed_specs << failed_spec
           end
         end
       end
