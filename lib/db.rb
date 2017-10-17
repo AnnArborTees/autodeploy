@@ -3,6 +3,7 @@
 require 'mysql2'
 require 'json'
 require 'strscan'
+require 'stringio'
 require 'cgi'
 require 'socket'
 require 'open3'
@@ -63,7 +64,6 @@ module Util
 
   def uncolor(input)
     # Get rid of bash color codes (adopted from https://stackoverflow.com/a/19890227)
-    input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
     html = StringIO.new
     until ansi.eos?
@@ -75,6 +75,8 @@ module Util
         html.print(ansi.scan(/./m))
       end
     end
+
+    html.string
   end
 
   def sanitize_commit(commit)
@@ -334,21 +336,23 @@ end
 
 
 
-command = Command.new
-action = ARGV[0].gsub('-', '_')
+if $0 != 'irb'
+  command = Command.new
+  action = ARGV[0].gsub('-', '_')
 
-unless command.respond_to?(action)
-  STDERR.puts "Bad command #{ARGV[0].inspect}"
-  exit(1)
-end
-
-begin
-  command.send(action, *ARGV[1..-1])
-rescue => e
-  STDERR.puts "=== ERROR DURING ACTION: #{ARGV[0]} #{ARGV[1..-1]} ==="
-  STDERR.puts "#{e.class}: #{e.message}"
-  e.backtrace.each do |line|
-    STDERR.puts " * #{line}"
+  unless command.respond_to?(action)
+    STDERR.puts "Bad command #{ARGV[0].inspect}"
+    exit(1)
   end
-  exit(111)
+
+  begin
+    command.send(action, *ARGV[1..-1])
+  rescue => e
+    STDERR.puts "=== ERROR DURING ACTION: #{ARGV[0]} #{ARGV[1..-1]} ==="
+    STDERR.puts "#{e.class}: #{e.message}"
+    e.backtrace.each do |line|
+      STDERR.puts " * #{line}"
+    end
+    exit(111)
+  end
 end

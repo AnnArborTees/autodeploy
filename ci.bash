@@ -2,7 +2,7 @@
 
 #
 # Should be used like so:
-#   ci.bash <path-to-app-root> [--force]
+#   ci.bash <path-to-app-root> [--force|--once]
 #
 
 # Fail on error
@@ -12,7 +12,7 @@ set -o pipefail
 
 if [ "$1" == "" ]
 then
-  echo "Usage: $0 <path-to-app-root> [--force]"
+  echo "Usage: $0 <path-to-app-root> [--force|--once]"
   exit 2
 fi
 
