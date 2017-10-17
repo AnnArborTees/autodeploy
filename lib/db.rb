@@ -309,7 +309,7 @@ class Command
       everything_passed = true
 
       failed_specs.each do |failed_spec|
-        input_queue << "\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m"
+        input_queue << "\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\n"
         everything_passed = false if !run_rspec.(failed_spec, false)
       end
     end
