@@ -7,6 +7,7 @@ require 'stringio'
 require 'cgi'
 require 'socket'
 require 'open3'
+require 'yaml'
 
 # ================================
 # Contains helper methods that are not commands
@@ -389,7 +390,10 @@ class Command
       set_db_to.(n)
 
       _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rake', 'db:create', 'db:migrate', 'RAILS_ENV=test')
-      pass while output.gets
+      while output.gets
+        STDOUT.write '.'
+      end
+      puts
 
       unless process.value.success?
         send_input.("FAILED!!!")
