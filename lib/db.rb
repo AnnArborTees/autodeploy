@@ -108,7 +108,7 @@ module Util
     @client = Mysql2::Client.new(config)
   end
 
-  def input_sender_thread(&is_done)
+  def input_sender_thread(run_id, &is_done)
     input_queue = Queue.new
 
     return_values = []
@@ -258,7 +258,7 @@ class Command
       )
 
       done = false
-      input_sender, send_input = input_sender_thread { done }
+      input_sender, send_input = input_sender_thread(run_id) { done }
 
       while (input = STDIN.gets)
         puts input
@@ -284,7 +284,7 @@ class Command
     )
 
     done = false
-    input_sender, send_input = input_sender_thread { done }
+    input_sender, send_input = input_sender_thread(run_id) { done }
 
     # Returns true if rspec completed successfully
     failed_specs = []
