@@ -285,7 +285,7 @@ class Command
           )
 
         rescue Mysql2::Error => e
-          if retries > 0 && e.message.include?("Lost connection to MySQL server")
+          if retries > 0 && e.message.include?("Lost connection")
             retries -= 1
             reconnect_client!
             retry
