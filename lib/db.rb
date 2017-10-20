@@ -96,6 +96,17 @@ module Util
   def local_username
     ENV['USER'] || ENV['USERNAME']
   end
+
+  def read_config
+    JSON.parse(IO.read("#{ENV['HOME']}/autodeploy.json"))
+  end
+
+  def reconnect_client!
+    config = read_config
+    config.delete('database')
+
+    @client = Mysql2::Client.new(config)
+  end
 end
 
 # ================================
@@ -109,7 +120,7 @@ class Command
   # Constructor
   # --------------------------------
   def initialize
-    config = JSON.parse(IO.read("#{ENV['HOME']}/autodeploy.json"))
+    config = read_config
     db     = config.delete('database')
 
     @client = Mysql2::Client.new(config)
@@ -265,11 +276,23 @@ class Command
           next sleep 0.1
         end
 
-        @client.query(
-          "UPDATE runs SET spec_output = " \
-          "CONCAT(spec_output, '#{sanitize(total_input)}') " \
-          "WHERE id = #{run_id}"
-        )
+        retries = 10
+        begin
+          @client.query(
+            "UPDATE runs SET spec_output = " \
+            "CONCAT(spec_output, '#{sanitize(total_input)}') " \
+            "WHERE id = #{run_id}"
+          )
+
+        rescue Mysql2::Error => e
+          if retries > 0 && e.message.include?("Lost connection to MySQL server")
+            retries -= 1
+            reconnect_client!
+            retry
+          else
+            raise
+          end
+        end
       end
     end
 
@@ -317,6 +340,8 @@ class Command
     done = true
     input_sender.join
     @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
+
+    input_queue << "\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\n"
 
     exit everything_passed ? 0 : 1
   end
