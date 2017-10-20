@@ -108,7 +108,7 @@ module Util
     @client = Mysql2::Client.new(config)
   end
 
-  def input_sender_thread(run_id, &is_done)
+  def input_sender_thread(run_id, output_field, &is_done)
     input_queue = Queue.new
 
     return_values = []
@@ -126,8 +126,8 @@ module Util
         retries = 10
         begin
           @client.query(
-            "UPDATE runs SET spec_output = " \
-            "CONCAT(spec_output, '#{sanitize(total_input)}') " \
+            "UPDATE runs SET #{output_field} = " \
+            "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
             "WHERE id = #{run_id}"
           )
 
@@ -258,7 +258,7 @@ class Command
       )
 
       done = false
-      input_sender, send_input = input_sender_thread(run_id) { done }
+      input_sender, send_input = input_sender_thread(run_id, output_field) { done }
 
       while (input = STDIN.gets)
         puts input
@@ -284,7 +284,7 @@ class Command
     )
 
     done = false
-    input_sender, send_input = input_sender_thread(run_id) { done }
+    input_sender, send_input = input_sender_thread(run_id, 'spec_output') { done }
 
     # Returns true if rspec completed successfully
     failed_specs = []
