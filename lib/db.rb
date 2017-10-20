@@ -108,8 +108,12 @@ module Util
     @client = Mysql2::Client.new(config)
   end
 
-  def input_sender_thread(input_queue, &is_done)
-    Thread.new do
+  def input_sender_thread(&is_done)
+    input_queue = Queue.new
+
+    return_values = []
+
+    return_values << Thread.new do
       loop do
         total_input = ""
         total_input += input_queue.pop until input_queue.empty?
@@ -139,6 +143,7 @@ module Util
       end
     end
 
+    return_values << input_queue.method(:<<)
   end
 end
 
@@ -252,14 +257,12 @@ class Command
         "WHERE id = #{run_id}"
       )
 
-      input_queue = Queue.new
       done = false
-
-      input_sender = input_sender_thread(input_queue) { done }
+      input_sender, send_input = input_sender_thread { done }
 
       while (input = STDIN.gets)
         puts input
-        input_queue << input
+        send_input.(input)
       end
 
       done = true
@@ -280,10 +283,8 @@ class Command
       "WHERE id = #{run_id}"
     )
 
-    input_queue = Queue.new
     done = false
-
-    input_sender = input_sender_thread(input_queue) { done }
+    input_sender, send_input = input_sender_thread { done }
 
     # Returns true if rspec completed successfully
     failed_specs = []
@@ -294,7 +295,7 @@ class Command
 
       while (input = output.gets)
         puts input
-        input_queue << input
+        send_input.(input)
 
         # If second arg is an array, fill it with the file paths of failed specs
         if look_for_failures
@@ -323,7 +324,7 @@ class Command
       everything_passed = true
 
       failed_specs.each do |failed_spec|
-        input_queue << "\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n"
+        send_input.("\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n")
 
         if run_rspec.(failed_spec, false)
           failure_count -= 1
@@ -335,11 +336,11 @@ class Command
 
     # Report end result
     if failure_count > 0
-      input_queue << "\033[1m\033[31m\n==== #{failure_count} Failed specs ====\033[0m\033[0m\n"
+      send_input.("\033[1m\033[31m\n==== #{failure_count} Failed specs ====\033[0m\033[0m\n")
     elsif everything_passed
-      input_queue << "\033[1m\033[32m\n==== SPECS PASSED! Onto deployment ====\033[0m\033[0m\n"
+      send_input.("\033[1m\033[32m\n==== SPECS PASSED! Onto deployment ====\033[0m\033[0m\n")
     else
-      input_queue << "\033[1m\033[31m\n==== Something went awry ====\033[0m\033[0m\n"
+      send_input.("\033[1m\033[31m\n==== Something went awry ====\033[0m\033[0m\n")
     end
 
     done = true
