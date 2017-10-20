@@ -107,6 +107,39 @@ module Util
 
     @client = Mysql2::Client.new(config)
   end
+
+  def input_sender_thread(input_queue, &is_done)
+    Thread.new do
+      loop do
+        total_input = ""
+        total_input += input_queue.pop until input_queue.empty?
+
+        if total_input.empty?
+          break if is_done.call
+          next sleep 0.1
+        end
+
+        retries = 10
+        begin
+          @client.query(
+            "UPDATE runs SET spec_output = " \
+            "CONCAT(spec_output, '#{sanitize(total_input)}') " \
+            "WHERE id = #{run_id}"
+          )
+
+        rescue Mysql2::Error => e
+          if retries > 0 && e.message.include?("Lost connection")
+            retries -= 1
+            reconnect_client!
+            retry
+          else
+            raise
+          end
+        end
+      end
+    end
+
+  end
 end
 
 # ================================
@@ -222,23 +255,7 @@ class Command
       input_queue = Queue.new
       done = false
 
-      input_sender = Thread.new do
-        loop do
-          total_input = ""
-          total_input += input_queue.pop until input_queue.empty?
-
-          if total_input.empty?
-            break if done
-            next sleep 0.1
-          end
-
-          @client.query(
-            "UPDATE runs SET #{output_field} = " \
-            "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
-            "WHERE id = #{run_id}"
-          )
-        end
-      end
+      input_sender = input_sender_thread(input_queue) { done }
 
       while (input = STDIN.gets)
         puts input
@@ -266,35 +283,7 @@ class Command
     input_queue = Queue.new
     done = false
 
-    input_sender = Thread.new do
-      loop do
-        total_input = ""
-        total_input += input_queue.pop until input_queue.empty?
-
-        if total_input.empty?
-          break if done
-          next sleep 0.1
-        end
-
-        retries = 10
-        begin
-          @client.query(
-            "UPDATE runs SET spec_output = " \
-            "CONCAT(spec_output, '#{sanitize(total_input)}') " \
-            "WHERE id = #{run_id}"
-          )
-
-        rescue Mysql2::Error => e
-          if retries > 0 && e.message.include?("Lost connection")
-            retries -= 1
-            reconnect_client!
-            retry
-          else
-            raise
-          end
-        end
-      end
-    end
+    input_sender = input_sender_thread(input_queue) { done }
 
     # Returns true if rspec completed successfully
     failed_specs = []
@@ -323,25 +312,39 @@ class Command
 
     # First run all specs, then run failed specs individually
     everything_passed = run_rspec.('spec', true)
+    failure_count = failed_specs.size
 
     if !everything_passed && failed_specs.empty?
       puts "ERROR: RSpecs failed, but no failed specs were detected!"
+      failure_count = 9999999
 
     elsif !everything_passed
       # Run all failed specs individually (assume success and say failure if any fail)
       everything_passed = true
 
       failed_specs.each do |failed_spec|
-        input_queue << "\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\n"
-        everything_passed = false if !run_rspec.(failed_spec, false)
+        input_queue << "\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n"
+
+        if run_rspec.(failed_spec, false)
+          failure_count -= 1
+        else
+          everything_passed = false
+        end
       end
+    end
+
+    # Report end result
+    if failure_count > 0
+      input_queue << "\033[1m\033[31m\n==== #{failure_count} Failed specs ====\033[0m\033[0m\n"
+    elsif everything_passed
+      input_queue << "\033[1m\033[32m\n==== SPECS PASSED! Onto deployment ====\033[0m\033[0m\n"
+    else
+      input_queue << "\033[1m\033[31m\n==== Something went awry ====\033[0m\033[0m\n"
     end
 
     done = true
     input_sender.join
     @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
-
-    input_queue << "\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\n"
 
     exit everything_passed ? 0 : 1
   end
