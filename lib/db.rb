@@ -351,6 +351,149 @@ class Command
   end
 
   # ================================
+  # Experimental!!!!
+  # --------------------------------
+  def experimental_super_rspec(run_id, *args)
+    run_id = sanitize(run_id)
+
+    @client.query(
+      "UPDATE runs SET status = 'specs_started', specs_started_at = NOW(), spec_output = '' " \
+      "WHERE id = #{run_id}"
+    )
+
+    done = false
+    input_sender, input_queue_send = input_sender_thread(run_id, 'spec_output') { done }
+    send_input = lambda do |msg|
+      puts msg
+      input_queue_send.call(msg)
+    end
+
+
+    # Ok, first step is to create and migrate every database
+    num_processes = 10
+    database_config = YAML.load(IO.read("config/database.yml"))
+    db_name = database_config['test']['database']
+
+    set_db_to = lambda do |n|
+      database_config['test']['database'] = "#{db_name}-#{n}"
+      IO.write "config/database.yml", YAML.dump(database_config)
+    end
+    restore_db = lambda do
+      database_config['test']['database'] = db_name
+      IO.write "config/database.yml", YAML.dump(database_config)
+    end
+    at_exit(&restore_db)
+
+    num_processes.times do |n|
+      send_input.("Setting up database #{n}")
+      set_db_to.(n)
+
+      _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rake', 'db:create', 'db:migrate', 'RAILS_ENV=test')
+      pass while output.gets
+
+      unless process.value.success?
+        send_input.("FAILED!!!")
+        exit(1)
+      end
+    end
+
+
+    # Returns true if rspec completed successfully
+    failed_specs = []
+    run_rspec = lambda do |file, look_for_failures|
+      _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
+
+      at_end = false
+
+      while (input = output.gets)
+        send_input.(input)
+
+        # If second arg is an array, fill it with the file paths of failed specs
+        if look_for_failures
+          if !at_end
+            at_end = input.include?("Failed examples:")
+
+          elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ uncolor(input.strip)
+            failed_specs << failed_spec
+          end
+        end
+      end
+
+      process.value.success?
+    end
+
+
+    # Now we can run some rspecs
+    seconds_between_runs = 2
+    everything_passed = true
+    all_specs = []
+    mutex = Mutex.new
+
+    all_specs += Dir.glob("spec/features/**/*_spec.rb") # All feature specs individually
+    all_specs += Dir.glob("spec/*/")
+      .reject { |s| s == "spec/features/" }
+      .reject { |s| Dir.glob("#{s}**/*_spec.rb").empty? }
+
+    threads = num_processes.times.map do |n|
+      Thread.new do
+        until all_specs.empty?
+          spec = all_specs.pop
+          break if spec.nil?
+
+          me_passed = false
+          runner = mutex.synchronize do
+            send_input.("=== Starting #{spec} on db #{n} ===")
+            set_db_to.(n)
+            
+            Thread.new { me_passed = run_rspec.(spec, true) }.tap { sleep seconds_between_runs }
+          end
+          runner.join
+          everything_passed = false if !me_passed
+        end
+      end
+    end
+    threads.each(&:join)
+    restore_db.call
+
+    failure_count = failed_specs.size
+
+    # Inspec failures as usual
+    if !everything_passed && failed_specs.empty?
+      puts "ERROR: RSpecs failed, but no failed specs were detected!"
+      failure_count = 9999999
+
+    elsif !everything_passed
+      # Run all failed specs individually (assume success and say failure if any fail)
+      everything_passed = true
+
+      failed_specs.each do |failed_spec|
+        send_input.("\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n")
+
+        if run_rspec.(failed_spec, false)
+          failure_count -= 1
+        else
+          everything_passed = false
+        end
+      end
+    end
+
+    # Report end result
+    if failure_count > 0
+      send_input.("\033[1m\033[31m\n==== #{failure_count} Failed specs ====\033[0m\033[0m\n")
+    elsif everything_passed
+      send_input.("\033[1m\033[32m\n==== SPECS PASSED! Onto deployment ====\033[0m\033[0m\n")
+    else
+      send_input.("\033[1m\033[31m\n==== Something went awry ====\033[0m\033[0m\n")
+    end
+
+    done = true
+    input_sender.join
+    @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
+
+    exit everything_passed ? 0 : 1
+  end
+
+  # ================================
   # Updates spec status -- typically to 'specs_passed', 'specs_failed', etc.
   # --------------------------------
   def spec_status(run_id, status)
