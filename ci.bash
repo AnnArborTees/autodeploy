@@ -29,6 +29,7 @@ APP_NAME="$(basename $DIR)"
 
 
 export RAILS_ENV=test
+export SSHKIT_COLOR=true
 
 
 # Outputs "commit abc123" where abc123 is the hash of the current HEAD.
