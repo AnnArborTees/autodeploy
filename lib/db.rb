@@ -132,7 +132,7 @@ module Util
           )
 
         rescue Mysql2::Error => e
-          if retries > 0 && e.message.include?("Lost connection")
+          if retries > 0 && e.message.include?("Lost connection") || e.message.include?("server has gone away")
             retries -= 1
             reconnect_client!
             retry
