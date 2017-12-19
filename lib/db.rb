@@ -103,9 +103,15 @@ module Util
 
   def reconnect_client!
     config = read_config
-    config.delete('database')
+    db     = config.delete('database')
 
     @client = Mysql2::Client.new(config)
+
+    if db
+      db = sanitize(db)
+      @client.query("CREATE DATABASE #{db}") rescue nil
+      @client.query("USE #{db}")
+    end
   end
 
   def input_sender_thread(run_id, output_field, &is_done)
@@ -158,16 +164,7 @@ class Command
   # Constructor
   # --------------------------------
   def initialize
-    config = read_config
-    db     = config.delete('database')
-
-    @client = Mysql2::Client.new(config)
-
-    if db
-      db = sanitize(db)
-      @client.query("CREATE DATABASE #{db}") rescue nil
-      @client.query("USE #{db}")
-    end
+    reconnect_client!
   end
 
   # ================================
