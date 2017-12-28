@@ -7,8 +7,11 @@ require 'stringio'
 require 'cgi'
 require 'socket'
 require 'open3'
-require 'aws-sdk-ses' rescue nil
-require 'erb' rescue nil
+begin
+  require 'aws-sdk-ses'
+  require 'erb'
+rescue Exception
+end
 
 # ================================
 # Contains helper methods that are not commands
@@ -173,7 +176,7 @@ module Util
       destination: {
         to_addresses: [
           # TODO hardcoded email address
-          'nigel@annarbortees.com'
+          'devteam@annarbortees.com'
         ]
       },
       message: {
