@@ -43,9 +43,15 @@ module Util
     "\"\\n\""
   end
 
-  def sanitize(input)
+  def sanitize(input, client = nil)
     return '' if input.nil?
+    client ||= @client
 
+    # Escape for SQL
+    client.escape(color2html(input))
+  end
+
+  def color2html(input, client = nil)
     # Replace bash color codes with html (adopted from https://stackoverflow.com/a/19890227)
     input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
@@ -60,8 +66,7 @@ module Util
       end
     end
 
-    # Escape for SQL
-    @client.escape(html.string)
+    html.string
   end
 
   def uncolor(input)
@@ -103,17 +108,23 @@ module Util
     JSON.parse(IO.read("#{ENV['HOME']}/autodeploy.json"))
   end
 
-  def reconnect_client!
+  def new_client
     config = read_config
     db     = config.delete('database')
 
-    @client = Mysql2::Client.new(config)
+    client = Mysql2::Client.new(config)
 
     if db
-      db = sanitize(db)
-      @client.query("CREATE DATABASE #{db}") rescue nil
-      @client.query("USE #{db}")
+      db = sanitize(db, client)
+      client.query("CREATE DATABASE #{db}") rescue nil
+      client.query("USE #{db}")
     end
+
+    client
+  end
+
+  def reconnect_client!
+    @client = new_client
   end
 
   def input_sender_thread(run_id, output_field, &is_done)
@@ -184,7 +195,7 @@ module Util
         body: {
           html: {
             charset: "UTF-8",
-            data: html_renderer.result(erb_context.binding)
+            data: html_renderer.result(erb_context.get_binding)
           },
           text: {
             charset: "UTF-8",
@@ -372,13 +383,16 @@ class Command
 
         failed_spec_output = []
 
-        if run_rspec.(failed_spec, nil) { |o| failed_spec_output << o }
+        if run_rspec.(failed_spec, nil) { |o| failed_spec_output << color2html(o) }
           failure_count -= 1
         else
           everything_passed = false
           failed_spec_info << {
             file: failed_spec,
-            output: failed_spec_output.join("<br />")
+            output: failed_spec_output
+              .join("<br />")
+              .gsub('   ', ' &nbsp;&nbsp;')
+              .gsub('  ', ' &nbsp;')
           }
         end
       end
@@ -387,6 +401,21 @@ class Command
     # Report end result
     if failure_count > 0
       send_input.("\033[1m\033[31m\n==== #{failure_count} Failed specs ====\033[0m\033[0m\n")
+
+      begin
+        # Grab app name
+        result = new_client.query("SELECT app FROM runs WHERE id = '#{run_id}'")
+        app = result.to_a.first.values.first
+
+        # Send email
+        send_failures_email(failed_spec_info, run_id, app)
+        puts "SENT EMAIL"
+      rescue => e
+        # Make it clear that we couldn't send the email
+        send_input.("\033[31m\nError sending email:\n#{e.class} #{e.message}\033[0m\n")
+        puts "COULDN'T SEND EMAIL #{e.class} #{e.message}"
+      end
+
     elsif everything_passed
       send_input.("\033[1m\033[32m\n==== SPECS PASSED! Onto deployment ====\033[0m\033[0m\n")
     else
@@ -397,21 +426,7 @@ class Command
     input_sender.join
     @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
 
-    if everything_passed
-      exit 0
-    else
-      begin
-        # Grab app name
-        result = @client.query("SELECT app FROM runs WHERE id = '#{run_id}'")
-        app = result.to_a.first.values.first
-
-        send_failures_email(failed_spec_info, run_id, app)
-      rescue => e
-        send_input.("\033[31m\nError sending email:\n#{e.class} #{e.message}\033[0m\n")
-      end
-
-      exit 1
-    end
+    exit everything_passed ? 0 : 1
   end
 
   # ================================

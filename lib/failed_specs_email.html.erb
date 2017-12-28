@@ -3,9 +3,34 @@
   <head>
   <style>
   a {
+    color: white;
+  }
+  .info a {
     text-decoration: none;
     color: maroon;
   }
+
+  .bold { font-weight: bold; }
+  .underline { text-decoration: underline; }
+  .underline { text-decoration: underline; }
+
+  .black { color: black; }
+  .red { color: #FF0000; }
+  .green { color: #00ff00; }
+  .yellow { color: yellow; }
+  .cyan { color: cyan; }
+  .blue { color: #00a8ff; }
+  .magenta { color: magenta; }
+  .white { color: white; }
+
+  .bg-black { background-color: black; }
+  .bg-red { background-color: #FF0000; }
+  .bg-green { background-color: #00ff00; }
+  .bg-yellow { background-color: yellow; }
+  .bg-cyan { background-color: cyan; }
+  .bg-blue { background-color: blue; }
+  .bg-magenta { background-color: magenta; }
+  .bg-white { background-color: white; }
 
   .terminal {
     background-color: #000000;
@@ -16,17 +41,20 @@
   </head>
 
   <body>
-    <h1><%= failed_spec_info.size %> failed specs</h1>
+    <h1><%= app_name %></h1>
+    <h2><%= failed_spec_info.size %> failed spec<%= 's' if failed_spec_info.size != 1 %></h2>
+
+    <p><%= Time.now.strftime("%A, %d %b %Y %l:%M %p") %></p>
 
     <%# TODO hardcoded url! %>
-    <p>
+    <p class='info'>
       Build:
-      <a href="http://10.0.1.111?build_id<%= run_id %>&app_name=<%= app_name %>">
+      <a href="http://10.0.1.111?build_id=<%= run_id %>&app_name=<%= app_name %>" target='_blank'>
         <%= app_name %> #<%= run_id %>
       </a>
     </p>
 
-    <ul>
+    <ul class='info'>
       <% failed_spec_info.each_with_index do |spec, i| %>
         <li><a href="#spec-<%= i %>"><%= spec[:file] %></a></li>
       <% end %>
@@ -35,7 +63,10 @@
     <hr />
 
     <% failed_spec_info.each_with_index do |spec, i| %>
-      <div id="spec-<%= i %>" class="terminal"><%= spec[:output] %></div>
+      <div id="spec-<%= i %>">
+        <h3><%= spec[:file] %></h3>
+        <div class="terminal"><%= spec[:output] %></div>
+      </div>
       <hr />
     <% end %>
   </body>
