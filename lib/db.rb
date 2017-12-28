@@ -103,9 +103,15 @@ module Util
 
   def reconnect_client!
     config = read_config
-    config.delete('database')
+    db     = config.delete('database')
 
     @client = Mysql2::Client.new(config)
+
+    if db
+      db = sanitize(db)
+      @client.query("CREATE DATABASE #{db}") rescue nil
+      @client.query("USE #{db}")
+    end
   end
 
   def input_sender_thread(run_id, output_field, &is_done)
@@ -130,7 +136,7 @@ module Util
           )
 
         rescue Mysql2::Error => e
-          if retries > 0 && e.message.include?("Lost connection")
+          if retries > 0 && e.message.include?("Lost connection") || e.message.include?("server has gone away")
             retries -= 1
             reconnect_client!
             retry
@@ -156,16 +162,7 @@ class Command
   # Constructor
   # --------------------------------
   def initialize
-    config = read_config
-    db     = config.delete('database')
-
-    @client = Mysql2::Client.new(config)
-
-    if db
-      db = sanitize(db)
-      @client.query("CREATE DATABASE #{db}") rescue nil
-      @client.query("USE #{db}")
-    end
+    reconnect_client!
   end
 
   # ================================
