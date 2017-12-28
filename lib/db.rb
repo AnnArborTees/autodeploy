@@ -51,7 +51,7 @@ module Util
     until ansi.eos?
       if ansi.scan(/\e\[0?m/)
         html.print(%{</span>})
-      elsif ansi.scan(/\e\[0?;?(\d+)m/)
+      elsif ansi.scan(/\e\[0?1?;?(\d+)(;49)?m/)
         html.print(%{<span class="#{AnsiColor[ansi[1]]}">})
       else
         html.print(ansi.scan(/./m))
@@ -69,7 +69,7 @@ module Util
     until ansi.eos?
       if ansi.scan(/\e\[0?m/)
         # Nothing
-      elsif ansi.scan(/\e\[0?;?(\d+)m/)
+      elsif ansi.scan(/\e\[0?1?;?(\d+)(;49)?m/)
         # Nothing
       else
         html.print(ansi.scan(/./m))
@@ -111,9 +111,7 @@ module Util
   def input_sender_thread(run_id, output_field, &is_done)
     input_queue = Queue.new
 
-    return_values = []
-
-    return_values << Thread.new do
+    thread = Thread.new do
       loop do
         total_input = ""
         total_input += input_queue.pop until input_queue.empty?
@@ -143,7 +141,7 @@ module Util
       end
     end
 
-    return_values << input_queue.method(:<<)
+    [thread, input_queue.method(:<<)]
   end
 end
 
@@ -286,9 +284,8 @@ class Command
     done = false
     input_sender, send_input = input_sender_thread(run_id, 'spec_output') { done }
 
-    # Returns true if rspec completed successfully
     failed_specs = []
-    run_rspec = lambda do |file, look_for_failures|
+    run_rspec = lambda do |file, failed_specs_list|
       _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
 
       at_end = false
@@ -298,12 +295,12 @@ class Command
         send_input.(input)
 
         # If second arg is an array, fill it with the file paths of failed specs
-        if look_for_failures
+        if failed_specs_list
           if !at_end
             at_end = input.include?("Failed examples:")
 
           elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ uncolor(input.strip)
-            failed_specs << failed_spec
+            failed_specs_list << failed_spec
           end
         end
       end
@@ -312,7 +309,7 @@ class Command
     end
 
     # First run all specs, then run failed specs individually
-    everything_passed = run_rspec.('spec', true)
+    everything_passed = run_rspec.('spec', failed_specs)
     failure_count = failed_specs.size
 
     if !everything_passed && failed_specs.empty?
@@ -320,13 +317,13 @@ class Command
       failure_count = 9999999
 
     elsif !everything_passed
-      # Run all failed specs individually (assume success and say failure if any fail)
+      # Run all failed specs individually
       everything_passed = true
 
       failed_specs.each do |failed_spec|
         send_input.("\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n")
 
-        if run_rspec.(failed_spec, false)
+        if run_rspec.(failed_spec, nil)
           failure_count -= 1
         else
           everything_passed = false
