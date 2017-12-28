@@ -1,0 +1,42 @@
+<!-- DOCTYPE html -->
+<html>
+  <head>
+  <style>
+  a {
+    text-decoration: none;
+    color: maroon;
+  }
+
+  .terminal {
+    background-color: #000000;
+    color: #FFF;
+    font-family: monospace;
+  }
+  </style>
+  </head>
+
+  <body>
+    <h1><%= failed_spec_info.size %> failed specs</h1>
+
+    <%# TODO hardcoded url! %>
+    <p>
+      Build:
+      <a href="http://10.0.1.111?build_id<%= run_id %>&app_name=<%= app_name %>">
+        <%= app_name %> #<%= run_id %>
+      </a>
+    </p>
+
+    <ul>
+      <% failed_spec_info.each_with_index do |spec, i| %>
+        <li><a href="#spec-<%= i %>"><%= spec[:file] %></a></li>
+      <% end %>
+    </ul>
+
+    <hr />
+
+    <% failed_spec_info.each_with_index do |spec, i| %>
+      <div id="spec-<%= i %>" class="terminal"><%= spec[:output] %></div>
+      <hr />
+    <% end %>
+  </body>
+</html>

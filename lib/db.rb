@@ -7,6 +7,8 @@ require 'stringio'
 require 'cgi'
 require 'socket'
 require 'open3'
+require 'aws-sdk-ses' rescue nil
+require 'erb' rescue nil
 
 # ================================
 # Contains helper methods that are not commands
@@ -149,6 +151,52 @@ module Util
 
     [thread, input_queue.method(:<<)]
   end
+
+  def send_failures_email(failed_spec_info, run_id, app_name)
+    return if failed_spec_info.empty?
+    raise "No aws-sdk-ses gem found" unless defined?(Aws::SES)
+    raise "No ERB gem found" unless defined?(ERB)
+    ses = Aws::SES::Client.new
+
+    template_path = File.dirname(__FILE__) + "/failed_specs_email.html.erb"
+    html_renderer = ERB.new(IO.read(template_path))
+
+    erb_context = Struct.new(:failed_spec_info, :run_id, :app_name) do
+      def get_binding
+        binding
+      end
+    end.new(failed_spec_info, run_id, app_name)
+
+    datestamp = Time.now.strftime("%m/%d/%Y")
+
+    response = ses.send_email(
+      destination: {
+        to_addresses: [
+          # TODO hardcoded email address
+          'nigel@annarbortees.com'
+        ]
+      },
+      message: {
+        subject: {
+          charset: "UTF-8",
+          data: "Spec Failures: #{app_name} #{datestamp}"
+        },
+        body: {
+          html: {
+            charset: "UTF-8",
+            data: html_renderer.result(erb_context.binding)
+          },
+          text: {
+            charset: "UTF-8",
+            data: "Failed specs:\n#{failed_spec_info.map { |f| f[:file] }.join("\n")}"
+          }
+        }
+      },
+      source: "aatci@annarbortees.com"
+    )
+
+    puts JSON.pretty_generate response.to_h
+  end
 end
 
 # ================================
@@ -282,13 +330,14 @@ class Command
     input_sender, send_input = input_sender_thread(run_id, 'spec_output') { done }
 
     failed_specs = []
-    run_rspec = lambda do |file, failed_specs_list|
+    run_rspec = lambda do |file, failed_specs_list, &block|
       _stdin, output, process = Open3.popen2e('bundle', 'exec', 'rspec', file, *args)
 
       at_end = false
 
       while (input = output.gets)
         puts input
+        block.(input) if block
         send_input.(input)
 
         # If second arg is an array, fill it with the file paths of failed specs
@@ -308,6 +357,7 @@ class Command
     # First run all specs, then run failed specs individually
     everything_passed = run_rspec.('spec', failed_specs)
     failure_count = failed_specs.size
+    failed_spec_info = [] # Array of hashes of keys: file, output
 
     if !everything_passed && failed_specs.empty?
       puts "ERROR: RSpecs failed, but no failed specs were detected!"
@@ -320,10 +370,16 @@ class Command
       failed_specs.each do |failed_spec|
         send_input.("\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n")
 
-        if run_rspec.(failed_spec, nil)
+        failed_spec_output = []
+
+        if run_rspec.(failed_spec, nil) { |o| failed_spec_output << o }
           failure_count -= 1
         else
           everything_passed = false
+          failed_spec_info << {
+            file: failed_spec,
+            output: failed_spec_output.join("<br />")
+          }
         end
       end
     end
@@ -341,7 +397,21 @@ class Command
     input_sender.join
     @client.query("UPDATE runs SET status = 'specs_ended', specs_ended_at = NOW() WHERE id = #{run_id}")
 
-    exit everything_passed ? 0 : 1
+    if everything_passed
+      exit 0
+    else
+      begin
+        # Grab app name
+        result = @client.query("SELECT app FROM runs WHERE id = '#{run_id}'")
+        app = result.to_a.first.values.first
+
+        send_failures_email(failed_spec_info, run_id, app)
+      rescue => e
+        send_input.("\033[31m\nError sending email:\n#{e.class} #{e.message}\033[0m\n")
+      end
+
+      exit 1
+    end
   end
 
   # ================================
