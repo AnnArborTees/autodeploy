@@ -381,10 +381,12 @@ class Command
       # Run all failed specs individually
       everything_passed = true
 
+      failed_spec_output = []
+
       failed_specs.each do |failed_spec|
         send_input.("\033[1m\033[33m==== RETRYING FAILED SPEC #{failed_spec} ====\033[0m\033[0m\n")
 
-        failed_spec_output = []
+        failed_spec_output.clear
 
         if run_rspec.(failed_spec, nil) { |o| failed_spec_output << color2html(o) }
           failure_count -= 1
@@ -399,6 +401,8 @@ class Command
           }
         end
       end
+
+      failed_spec_output.clear
     end
 
     # Report end result
