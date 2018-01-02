@@ -35,9 +35,9 @@ The `bundle` binary is stubbed in these test environments. Check out
 `test_environment/bundle_stub.rb` and `test_environment/mock_bundle*.rb`.
 
 
-
-
 ## Using (automated testing/deployment for apps)
+
+On the AATCI Servers
 
 First, you need to have a file in your home directory called `autodeploy.json`.
 This describes the MYSQL database in which spec and deployment results will be dumped.
@@ -62,6 +62,12 @@ This describes the MYSQL database in which spec and deployment results will be d
 ```bash
 ./ci-detached.bash /path/to/project-root/
 ```
+
+### To start on bootup
+
+Via ubuntu GUI, configure Startup Scripts to run. The startup script is just a script that has the configuration needed to run our apps, i.e. code to execute the "Runnnig detached" for CRM, then for Retail, then for Production etc.
+
+TODO: Why does one CI server run on startup successfuly and the other doesn't?
 
 ## VPN notes
 
