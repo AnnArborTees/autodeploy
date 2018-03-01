@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+#
 require 'open3'
 
 module Git
@@ -45,6 +47,16 @@ module Git
   ensure
     stdin.close
     stdout.close
+  end
+
+  def pull!
+    pid = Process.spawn("git", "pull")
+    Process.wait pid
+  end
+
+  def reset_hard!
+    pid = Process.spawn("git", "reset", "--hard")
+    Process.wait pid
   end
 
   extend self

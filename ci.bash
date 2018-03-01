@@ -48,7 +48,7 @@ function getmessage {
 }
 
 # Runs the "db.rb" script
-db="ruby $SCRIPT_DIR/lib/db.rb"
+db="ruby $SCRIPT_DIR/lib/db-old.rb"
 
 
 #
