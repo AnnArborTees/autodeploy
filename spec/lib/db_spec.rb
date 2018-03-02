@@ -2,7 +2,7 @@ require 'spec_helper'
 require_relative '../../lib/db'
 
 RSpec.describe Db do
-  subject { Class.new(Db).new }
+  subject { Class.new { include Db }.new }
 
   describe '#own_ip_address' do
     before do

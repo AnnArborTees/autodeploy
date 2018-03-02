@@ -1,30 +1,75 @@
-require_relative 'git'
-require_relative 'db'
+require_relative 'rails_app'
+
+require 'byebug'
 
 # We select a random delay time to decrease the chances of
 # both CI machines pulling the same commit.
 DELAY_BETWEEN_PULLS = (5.0...15.0)
+APP_DIR = ARGV[0]
+APP_TYPE = ARGV[1]
 
-@db = Db.new
-@previous_commit = Git.commit_hash
+if APP_DIR.nil? || APP_TYPE.nil?
+  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force]"
+  exit 1
+end
 
-@db.initialize_tables!
+def force?
+  ARGV.include?('--force')
+end
+
+case APP_TYPE
+when 'rails' then app = RailsApp.new(APP_DIR)
+else raise "Error: unknown app type #{APP_TYPE.inspect}"
+end
 
 loop do
-  current_commit = @previous_commit
+  if force?
+    #
+    # Don't bother pulling code if --force was specified
+    #
+    puts "Not going to bother pulling -- running with #{app.commit}"
+  else
+    #
+    # Pull until we have new code
+    #
+    app.pull!
 
-  #
-  # Pull until we have new code.
-  #
-  while current_commit == @previous_commit
-    sleep rand(DELAY_BETWEEN_PULLS)
-    Git.reset_hard!
-    Git.pull!
+    puts "New code found! HEAD is now #{app.commit}"
 
-    current_commit = Git.commit_hash
+    #
+    # See if we already have a run started for this commit
+    #
+    if Run.exists?(commit: app.commit)
+      puts "Run already exists for #{app.commit}"
+      next
+    end
   end
-  puts "New code found! HEAD is now #{current_commit}"
-  @previous_commit = current_commit
 
-  # TODO check if this commit already has a run
+  puts "Beginning run for #{app.commit}"
+
+  #
+  # Create a db entry for this run
+  #
+  run = app.create_run
+
+  #
+  # Perform any setup commands necessary (install dependencies, set up db, etc.)
+  #
+  next unless app.setup!(run)
+
+  #
+  # Run specs
+  #
+  run.specs_started
+  next unless app.run_tests!(run)
+
+  #
+  # Deploy
+  #
+  app.deploy!(run)
+
+  #
+  # Exit before looping if this run was forced
+  #
+  exit 0 if force?
 end

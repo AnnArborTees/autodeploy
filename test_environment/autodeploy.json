@@ -1,6 +1,9 @@
 {
-  "host":     "database",
-  "username": "root",
-  "password": "pw4root",
-  "database": "autodeploy"
+  "subnets": [""],
+  "mysql2": {
+    "host":     "database",
+    "username": "root",
+    "password": "pw4root",
+    "database": "autodeploy"
+  }
 }

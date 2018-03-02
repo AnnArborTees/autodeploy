@@ -1,3 +1,4 @@
+require 'active_record'
 require 'socket'
 require 'mysql2'
 require 'strscan'
@@ -7,7 +8,7 @@ require 'cgi'
 require 'aws-sdk-ses'
 require 'erb'
 
-class Db
+module Util
   AnsiColor = {
     "1" => "bold",
     "4" => "underline",
@@ -29,22 +30,6 @@ class Db
     "47" => "bg-white",
   }
 
-  def initialize
-    reconnect_client!
-  end
-
-
-  def commit_has_run?(commit)
-    app    = sanitize(app)
-    commit = sanitize_commit(commit)
-
-    result = @client.query("SELECT COUNT(*) FROM runs WHERE app = '#{app}' AND commit = '#{commit}'")
-    # TODO let's try activerecord
-  end
-
-
-  protected
-
   def date(time)
     time.strftime("%Y-%m-%d %H:%M:%S")
   end
@@ -53,15 +38,14 @@ class Db
     "\"\\n\""
   end
 
-  def sanitize(input, client = nil)
+  def sanitize(client, input)
     return '' if input.nil?
-    client ||= @client
 
     # Escape for SQL
     client.escape(color2html(input))
   end
 
-  def color2html(input, client = nil)
+  def color2html(input)
     # Replace bash color codes with html (adopted from https://stackoverflow.com/a/19890227)
     input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
@@ -96,10 +80,6 @@ class Db
     html.string
   end
 
-  def sanitize_commit(commit)
-    sanitize(commit.gsub("commit ", ''))
-  end
-
   def own_ip_address
     config = read_config
     Socket
@@ -118,32 +98,19 @@ class Db
     JSON.parse(IO.read("#{ENV['HOME']}/autodeploy.json"))
   end
 
-  def new_client
+  def establish_activerecord_connection
+    return if ActiveRecord::Base.connected?
     config = read_config['mysql2']
-    db     = config.delete('database')
-
-    client = Mysql2::Client.new(config)
-
-    if db
-      db = sanitize(db, client)
-      client.query("CREATE DATABASE #{db}") rescue nil
-      client.query("USE #{db}")
-    end
-
-    client
-  end
-
-  def reconnect_client!
-    @client = new_client
+    ActiveRecord::Base.establish_connection(config.merge('adapter': 'mysql2'))
+    initialize_tables!
   end
 
   def initialize_tables!
-    reconnect_client! if @client.nil?
-
-    runs_table_exists = @client.query("SHOW TABLES").to_a.flat_map(&:values).include?("runs")
-    unless runs_table_exists
-      @client.query(
-        "CREATE TABLE runs ("\
+    ActiveRecord::Base.connection_pool.with_connection do |client|
+      runs_table_exists = client.query("SHOW TABLES").to_a.flatten.include?("runs")
+      unless runs_table_exists
+        client.query(
+          "CREATE TABLE runs ("\
           "id            int          NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
           "app           varchar(255) NOT NULL, "\
           "branch        varchar(255) NOT NULL, "\
@@ -159,19 +126,20 @@ class Db
           "spec_output       longtext, "\
           "message           longtext, "\
           "deploy_output     longtext"\
-        ")"
-      )
-    end
+          ")"
+        )
+      end
 
-    failures_table_exists = @client.query("SHOW TABLES").to_a.flat_map(&:values).include?("failures")
-    unless failures_table_exists
-      @client.query(
-        "CREATE TABLE failures ("\
+      failures_table_exists = client.query("SHOW TABLES").to_a.flatten.include?("failures")
+      unless failures_table_exists
+        client.query(
+          "CREATE TABLE failures ("\
           "id            int      NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
-          "run_id        int      NOT NULL"\
+          "run_id        int      NOT NULL, "\
           "output        longtext NOT NULL"\
-        ")"
-      )
+          ")"
+        )
+      end
     end
   end
 
@@ -190,16 +158,18 @@ class Db
 
         retries = 10
         begin
-          @client.query(
-            "UPDATE runs SET #{output_field} = " \
-            "CONCAT(#{output_field}, '#{sanitize(total_input)}') " \
-            "WHERE id = #{run_id}"
-          )
+          ActiveRecord::Base.connection_pool.with_connection do |client|
+            client.query(
+              "UPDATE runs SET #{output_field} = " \
+              "CONCAT(#{output_field}, '#{sanitize(client, total_input)}') " \
+              "WHERE id = #{run_id}"
+            )
+          end
 
         rescue Mysql2::Error => e
           if retries > 0 && e.message.include?("Lost connection") || e.message.include?("server has gone away")
             retries -= 1
-            reconnect_client!
+            establish_activerecord_connection
             retry
           else
             raise
@@ -210,4 +180,6 @@ class Db
 
     [thread, input_queue.method(:<<)]
   end
+
+  extend self
 end
