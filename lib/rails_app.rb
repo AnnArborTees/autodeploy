@@ -64,7 +64,7 @@ class RailsApp < App
       end
 
       # Send failures email
-      send_failures_email(failed_spec_info, run.id, run.app)
+      send_failures_email(failed_spec_info, run.id, name)
     end
 
     #
