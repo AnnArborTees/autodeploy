@@ -4,7 +4,11 @@ require_relative 'util'
 Util.establish_activerecord_connection
 
 class Run < ActiveRecord::Base
+  has_many :failures, inverse_of: :run
+
   after_initialize { self.status ||= 'initialized' }
+
+  attr_accessor :current_output_field
 
   def ok?
     !status.include?('failed') && !status.include?('error')
@@ -14,21 +18,20 @@ class Run < ActiveRecord::Base
     status == 'error'
   end
 
-  def record_process(options)
-    output_field = options[:output_to]
-    unless %w(spec_output deploy_output).include?(output_field)
-      raise ArgumentError, "options[:output_to] should be either spec_output or deploy_output"
+  def record_process(*cmdline)
+    output_field = current_output_field
+    if output_field.nil?
+      raise "Set run.current_output_field = 'spec_output' or something before record_process"
     end
 
-    cmdline = options[:command]
-    unless cmdline.is_a?(Array)
-      raise ArgumentError, "options[:command] should be an array of command line arguments"
+    unless %w(spec_output deploy_output).include?(output_field)
+      raise ArgumentError, "current_output_field should be either spec_output or deploy_output"
     end
 
     # Spin up a thread that will stream the process's stdout into the given
     # output field.
     done = false
-    input_sender, send_output = output_sender_thread(output_field) { done }
+    output_sender, send_output = output_sender_thread(output_field) { done }
     _stdin, stdout, process = Open3.popen2e(*cmdline)
 
     while (output = stdout.gets)
@@ -38,9 +41,10 @@ class Run < ActiveRecord::Base
     end
 
     done = true
-    input_sender.join
+    output_sender.join
     process.value.success?
   end
+  alias record record_process
 
   def specs_started
     update_attributes!(

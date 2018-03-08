@@ -32,7 +32,7 @@ loop do
     #
     # Pull until we have new code
     #
-    app.pull!
+    app.pull_until_new_code!
 
     puts "New code found! HEAD is now #{app.commit}"
 
@@ -48,24 +48,18 @@ loop do
   puts "Beginning run for #{app.commit}"
 
   #
-  # Create a db entry for this run
+  # Set up the 'run' entry in the database, and
+  # let the app do the talking from there.
   #
   run = app.create_run
+  run.current_output_field = 'spec_output'
 
-  #
-  # Perform any setup commands necessary (install dependencies, set up db, etc.)
-  #
-  next unless app.setup!(run)
+  next unless app.run_setup_commands!(run)
 
-  #
-  # Run specs
-  #
   run.specs_started
   next unless app.run_tests!(run)
 
-  #
-  # Deploy
-  #
+  run.current_output_field = 'deploy_output'
   app.deploy!(run)
 
   #

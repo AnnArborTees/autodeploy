@@ -15,11 +15,11 @@ class App
     @directory = directory
     @name = File.basename(@directory)
 
-    @commit = chdir { Git.commit_hash }
+    @commit = in_app_dir { Git.commit_hash }
   end
 
   def create_run
-    chdir do
+    in_app_dir do
       Run.create!(
         app:       name,
         commit:    commit,
@@ -30,8 +30,8 @@ class App
     end
   end
 
-  def pull!
-    chdir do
+  def pull_until_new_code!
+    in_app_dir do
       new_commit = Git.commit_hash
 
       # Keep resetting and pulling until the commit hash changes
@@ -48,22 +48,39 @@ class App
     end
   end
 
-  def setup!(_run)
-    raise "Implement this in a subclass!"
+  def run_setup_commands!(run)
+    setup_commands.each do |command|
+      succeeded = run.record_process(command)
+
+      unless succeeded
+        run.errored("Failed to execute `#{command.join(' ')}`")
+        return false
+      end
+    end
+
+    true
   end
 
   def run_tests!(_run)
-    raise "Implement this in a subclass!"
+    raise "`run_tests!` unimplemented in #{self.class.name}"
   end
 
-  def deploy!(_run)
-    raise "Implement this in a subclass!"
+  def deploy!(run)
+    run.record(*deploy_command)
   end
 
 
   protected
 
-  def chdir(&block)
+  def setup_commands
+    raise "`setup_commands` unimplemented in #{self.class.name}"
+  end
+
+  def deploy_command
+    raise "`deploy_command` unimplemented in #{self.class.name}"
+  end
+
+  def in_app_dir(&block)
     Dir.chdir(@directory, &block)
   end
 end
