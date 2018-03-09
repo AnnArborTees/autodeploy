@@ -25,6 +25,10 @@ def log?
   ARGV.include?('--debug')
 end
 
+def debug?
+  ARGV.include?('--debug')
+end
+
 if log?
   $logger = Logger.new(STDOUT)
   $logger.level = Logger::DEBUG
@@ -94,7 +98,9 @@ loop do
     end
 
   rescue StandardError => error
-    run.errored("CI ERROR ENCOUNTERED\n#{error.class}: #{error.message}") rescue nil
+    message = "CI ENCOUNTERED ERROR\n#{error.class}: #{error.message}"
+    run.errored(message) rescue nil
+    STDERR.puts "#{message}\n\n#{error.backtrace.map { |b| "* #{b}" }.join("\n")}\n"
 
   rescue Exception => exception
     run.errored("#{exception.class}: #{exception.message}") rescue nil

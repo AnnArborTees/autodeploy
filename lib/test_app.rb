@@ -24,9 +24,16 @@ class TestApp < App
   end
 
   def deploy_commands
-    [
-      %w(echo deploying code),
-      %w(echo totally deployed code)
-    ]
+    if ENV['TEST_DEPLOY_FAIL'] == 'true'
+      [
+        %w(echo this deploy will fail!!!),
+        ['ruby', '-e', 'exit 1']
+      ]
+    else
+      [
+        %w(echo deploying code),
+        %w(echo totally deployed code)
+      ]
+    end
   end
 end

@@ -19,6 +19,18 @@ services:
     depends_on:
       - database
 
+  test_deploy_fail:
+    build: .
+    environment:
+      - TEST_DEPLOY_FAIL=true
+    networks:
+      - autodeploy
+    volumes:
+      - ".:/home/autodeploy"
+      - "bundler:/usr/local/bundle"
+    depends_on:
+      - database
+
   inspect:
     build: .
     networks:
