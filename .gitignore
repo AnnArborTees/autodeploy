@@ -1,3 +1,4 @@
 ssh/*.pem
 pids/
 startup/
+.byebug_history

@@ -3,6 +3,24 @@
 require 'open3'
 
 module Git
+  def branch
+    # The first line of git status is:
+    # "On branch <branch name>"
+    #
+    stdin, stdout, _process = Open3.popen2('git', 'status')
+
+    while line = stdout.gets
+      if /On branch (?<branch_name>[\w\-]+)/ =~ line
+        return branch_name
+      end
+    end
+    raise "Failed to find current branch"
+
+  ensure
+    stdin.close
+    stdout.close
+  end
+
   def commit_hash
     # The first line of `git show HEAD` is "commit abc123".
     # So, we split off the "commit" part and return the rest.

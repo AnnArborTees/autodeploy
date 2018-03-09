@@ -25,6 +25,7 @@ class App
         commit:    commit,
         author:    Git.commit_author,
         message:   Git.commit_message,
+        branch:    Git.branch,
         runner_ip: "#{Util.local_username}@#{Util.own_ip_address}"
       )
     end
@@ -50,7 +51,7 @@ class App
 
   def run_setup_commands!(run)
     setup_commands.each do |command|
-      succeeded = run.record_process(command)
+      succeeded = run.record_process(*command)
 
       unless succeeded
         run.errored("Failed to execute `#{command.join(' ')}`")
@@ -69,6 +70,9 @@ class App
     run.record(*deploy_command)
   end
 
+  def in_app_dir(&block)
+    Dir.chdir(@directory, &block)
+  end
 
   protected
 
@@ -78,9 +82,5 @@ class App
 
   def deploy_command
     raise "`deploy_command` unimplemented in #{self.class.name}"
-  end
-
-  def in_app_dir(&block)
-    Dir.chdir(@directory, &block)
   end
 end

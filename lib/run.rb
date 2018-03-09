@@ -62,20 +62,20 @@ class Run < ActiveRecord::Base
   def send_to_output(output_field, message, client = nil)
     client ||= Run.connection
 
-    client.query(
+    client.execute(
       "UPDATE runs SET #{output_field} = " \
-      "CONCAT(#{output_field}, '#{sanitize(message, client)}') " \
+      "CONCAT(#{output_field}, #{sanitize(message, client)}) " \
       "WHERE id = #{id}"
     )
   end
 
   private
 
-  def sanitize(input, client = nil)
+  def sanitize(input, client)
     return '' if input.nil?
 
     # Escape for SQL
-    client.escape(Util.color2html(input))
+    client.quote(Util.color2html(input))
   end
 
   def output_sender_thread(output_field, &is_done)
@@ -100,7 +100,6 @@ class Run < ActiveRecord::Base
         rescue Mysql2::Error => e
           if retries > 0 && e.message.include?("Lost connection") || e.message.include?("server has gone away")
             retries -= 1
-            reconnect_client!
             retry
           else
             raise

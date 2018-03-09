@@ -22,6 +22,9 @@ when 'rails' then app = RailsApp.new(APP_DIR)
 else raise "Error: unknown app type #{APP_TYPE.inspect}"
 end
 
+ENV['RAILS_ENV'] = 'test'
+ENV['SSHKIT_COLOR'] = 'true'
+
 loop do
   if force?
     #
@@ -54,13 +57,15 @@ loop do
   run = app.create_run
   run.current_output_field = 'spec_output'
 
-  next unless app.run_setup_commands!(run)
+  app.in_app_dir do
+    next unless app.run_setup_commands!(run)
 
-  run.specs_started
-  next unless app.run_tests!(run)
+    run.specs_started
+    next unless app.run_tests!(run)
 
-  run.current_output_field = 'deploy_output'
-  app.deploy!(run)
+    run.current_output_field = 'deploy_output'
+    app.deploy!(run)
+  end
 
   #
   # Exit before looping if this run was forced

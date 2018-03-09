@@ -20,9 +20,9 @@ class RailsApp < App
       if !at_end
         # Once we see "Failed examples:", we can start gathering a list
         # of all failed specs.
-        at_end = input.include?("Failed examples:")
+        at_end = line.include?("Failed examples:")
 
-      elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ Util.uncolor(input.strip)
+      elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ Util.uncolor(line.strip)
         # The regex parsed the file name out of the "rspec <filename>" string
         failed_specs << failed_spec
       end

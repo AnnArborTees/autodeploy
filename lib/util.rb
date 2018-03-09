@@ -38,13 +38,6 @@ module Util
     "\"\\n\""
   end
 
-  def sanitize(client, input)
-    return '' if input.nil?
-
-    # Escape for SQL
-    client.escape(color2html(input))
-  end
-
   def color2html(input)
     # Replace bash color codes with html (adopted from https://stackoverflow.com/a/19890227)
     input = CGI::escapeHTML(input)
@@ -107,9 +100,9 @@ module Util
 
   def initialize_tables!
     ActiveRecord::Base.connection_pool.with_connection do |client|
-      runs_table_exists = client.query("SHOW TABLES").to_a.flatten.include?("runs")
+      runs_table_exists = client.execute("SHOW TABLES").to_a.flatten.include?("runs")
       unless runs_table_exists
-        client.query(
+        client.execute(
           "CREATE TABLE runs ("\
           "id            int          NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
           "app           varchar(255) NOT NULL, "\
@@ -130,9 +123,9 @@ module Util
         )
       end
 
-      failures_table_exists = client.query("SHOW TABLES").to_a.flatten.include?("failures")
+      failures_table_exists = client.execute("SHOW TABLES").to_a.flatten.include?("failures")
       unless failures_table_exists
-        client.query(
+        client.execute(
           "CREATE TABLE failures ("\
           "id            int      NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
           "run_id        int      NOT NULL, "\
@@ -141,44 +134,6 @@ module Util
         )
       end
     end
-  end
-
-  def input_sender_thread(run_id, output_field, &is_done)
-    input_queue = Queue.new
-
-    thread = Thread.new do
-      loop do
-        total_input = ""
-        total_input += input_queue.pop until input_queue.empty?
-
-        if total_input.empty?
-          break if is_done.call
-          next sleep 0.1
-        end
-
-        retries = 10
-        begin
-          ActiveRecord::Base.connection_pool.with_connection do |client|
-            client.query(
-              "UPDATE runs SET #{output_field} = " \
-              "CONCAT(#{output_field}, '#{sanitize(client, total_input)}') " \
-              "WHERE id = #{run_id}"
-            )
-          end
-
-        rescue Mysql2::Error => e
-          if retries > 0 && e.message.include?("Lost connection") || e.message.include?("server has gone away")
-            retries -= 1
-            establish_activerecord_connection
-            retry
-          else
-            raise
-          end
-        end
-      end
-    end
-
-    [thread, input_queue.method(:<<)]
   end
 
   extend self
