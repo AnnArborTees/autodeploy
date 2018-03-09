@@ -20,7 +20,7 @@ class Run < ActiveRecord::Base
     status == 'error'
   end
 
-  def record_process(*cmdline)
+  def record_process(*cmdline, &block)
     output_field = current_output_field
     if output_field.nil?
       raise "Set run.current_output_field = 'spec_output' or something before record_process"
@@ -30,21 +30,46 @@ class Run < ActiveRecord::Base
       raise ArgumentError, "current_output_field should be either spec_output or deploy_output"
     end
 
-    # Spin up a thread that will stream the process's stdout into the given
-    # output field.
     done = false
-    output_sender, send_output = output_sender_thread(output_field) { done }
-    _stdin, stdout, process = Open3.popen2e(*cmdline)
 
-    while (output = stdout.gets)
-      puts output
-      send_output.(output)
-      yield output, send_output if block_given?
+    # These filter methods get called on output we read from stdout and stderr
+    # respectively.
+    stdout_filters = [
+      Util.method(:color2html)
+    ]
+    stderr_filters = [
+      Util.method(:color2html),
+      Util.method(:wrap_with_error_span)
+    ]
+
+    # Spin up threads that will stream the process's stdout/stderr into the given
+    # output field.
+    output_sender, send_output = output_sender_thread(output_field, stdout_filters) { done }
+    error_output_sender, send_error_output = output_sender_thread(output_field, stderr_filters) { done }
+
+    semaphore = Mutex.new
+
+    Open3.popen3(*cmdline) do |_stdin, stdout, stderr, process|
+      read_output_stream = lambda do |stream, send_output_proc|
+        lambda do
+          while (output = stream.gets)
+            puts output
+            send_output_proc.call(output)
+            semaphore.synchronize { block.call(output) } if block
+          end
+        end
+      end
+
+      [
+        Thread.new(&read_output_stream[stdout, send_output]),
+        Thread.new(&read_output_stream[stderr, send_error_output])
+      ].each(&:join)
+
+      done = true
+      output_sender.join
+      error_output_sender.join
+      process.value.success?
     end
-
-    done = true
-    output_sender.join
-    process.value.success?
   end
   alias record record_process
 
@@ -93,24 +118,30 @@ class Run < ActiveRecord::Base
     client ||= Run.connection
     output_field ||= current_output_field
 
+    send_to_output_raw(sanitize(message, client), output_field, client)
+  end
+
+  def send_to_output_raw(message, output_field, client)
     client.execute(
       "UPDATE runs SET #{output_field} = " \
-      "CONCAT(#{output_field}, #{sanitize(message, client)}) " \
+      "CONCAT(#{output_field}, #{message}) " \
       "WHERE id = #{id}"
     )
   end
 
   private
 
-  def sanitize(input, client)
+  def sanitize(input, client = nil)
     return '' if input.nil?
+    client ||= self.class.connection
 
     # Escape for SQL
     client.quote(Util.color2html(input))
   end
 
-  def output_sender_thread(output_field, &is_done)
+  def output_sender_thread(output_field, filters = [], &is_done)
     queue = Queue.new
+    filters = Array(filters)
 
     thread = Thread.new do
       loop do
@@ -122,10 +153,14 @@ class Run < ActiveRecord::Base
           next sleep 0.1
         end
 
+        filters.each do |filter|
+          total_output = filter[total_output]
+        end
+
         retries = 10
         begin
           Run.connection_pool.with_connection do |client|
-            send_to_output(total_output, output_field, client)
+            send_to_output_raw("'#{client.quote_string(total_output)}'", output_field, client)
           end
 
         rescue Mysql2::Error => e

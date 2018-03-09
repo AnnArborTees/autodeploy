@@ -4,6 +4,7 @@ require 'mysql2'
 require 'strscan'
 require 'stringio'
 require 'cgi'
+require 'byebug'
 
 require 'aws-sdk-ses'
 require 'erb'
@@ -73,6 +74,10 @@ module Util
     html.string
   end
 
+  def wrap_with_error_span(string)
+    "<span class='stderr-output'>#{string}</span>"
+  end
+
   def own_ip_address
     config = read_config
     Socket
@@ -94,45 +99,50 @@ module Util
   def establish_activerecord_connection
     return if ActiveRecord::Base.connected?
     config = read_config['mysql2']
-    ActiveRecord::Base.establish_connection(config.merge('adapter': 'mysql2'))
     initialize_tables!
+    ActiveRecord::Base.establish_connection(config.merge(adapter: 'mysql2'))
   end
 
   def initialize_tables!
-    ActiveRecord::Base.connection_pool.with_connection do |client|
-      runs_table_exists = client.execute("SHOW TABLES").to_a.flatten.include?("runs")
-      unless runs_table_exists
-        client.execute(
-          "CREATE TABLE runs ("\
-          "id            int          NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
-          "app           varchar(255) NOT NULL, "\
-          "branch        varchar(255) NOT NULL, "\
-          "status        varchar(255) NOT NULL, "\
-          "commit        varchar(255) NOT NULL, "\
-          "runner_ip     varchar(255), "\
-          "author        varchar(255), "\
-          "created_at        datetime, "\
-          "specs_started_at  datetime, "\
-          "specs_ended_at    datetime, "\
-          "deploy_started_at datetime, "\
-          "deploy_ended_at   datetime, "\
-          "spec_output       longtext, "\
-          "message           longtext, "\
-          "deploy_output     longtext"\
-          ")"
-        )
-      end
+    config = read_config['mysql2']
+    database = config.delete('database')
+    client = Mysql2::Client.new(config)
 
-      failures_table_exists = client.execute("SHOW TABLES").to_a.flatten.include?("failures")
-      unless failures_table_exists
-        client.execute(
-          "CREATE TABLE failures ("\
-          "id            int      NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
-          "run_id        int      NOT NULL, "\
-          "output        longtext NOT NULL"\
-          ")"
-        )
-      end
+    client.query("CREATE DATABASE #{database}") rescue nil
+    client.query("USE #{database}") rescue nil
+
+    tables = client.query("SHOW TABLES").to_a.map(&:values).flatten
+
+    unless tables.include?("runs")
+      client.query(
+        "CREATE TABLE runs ("\
+        "id            int          NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
+        "app           varchar(255) NOT NULL, "\
+        "branch        varchar(255) NOT NULL, "\
+        "status        varchar(255) NOT NULL, "\
+        "commit        varchar(255) NOT NULL, "\
+        "runner_ip     varchar(255), "\
+        "author        varchar(255), "\
+        "created_at        datetime, "\
+        "specs_started_at  datetime, "\
+        "specs_ended_at    datetime, "\
+        "deploy_started_at datetime, "\
+        "deploy_ended_at   datetime, "\
+        "spec_output       longtext, "\
+        "message           longtext, "\
+        "deploy_output     longtext"\
+        ")"
+      )
+    end
+
+    unless tables.include?("failures")
+      client.query(
+        "CREATE TABLE failures ("\
+        "id            int      NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
+        "run_id        int      NOT NULL, "\
+        "output        longtext NOT NULL"\
+        ")"
+      )
     end
   end
 
