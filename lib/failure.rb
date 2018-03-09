@@ -1,7 +1,6 @@
-require 'mysql2'
-require_relative 'db'
+require_relative 'util'
 
-Db.establish_activerecord_connection
+Util.establish_activerecord_connection
 
 class Failure < ActiveRecord::Base
   belongs_to :run, inverse_of: :failures

@@ -72,24 +72,33 @@ loop do
   run = app.create_run
   run.current_output_field = 'spec_output'
 
-  app.in_app_dir do
-    next unless app.run_setup_commands!(run)
+  begin
+    app.in_app_dir do
+      next unless app.run_setup_commands!(run)
 
-    run.specs_started
-    unless app.run_tests!(run)
-      run.specs_failed
-      next
+      run.specs_started
+      unless app.run_tests!(run)
+        run.specs_failed
+        next
+      end
+
+      run.current_output_field = 'deploy_output'
+
+      run.deploy_started
+      unless app.deploy!(run)
+        run.deploy_failed
+        next
+      end
+
+      run.deployed
     end
 
-    run.current_output_field = 'deploy_output'
+  rescue StandardError => error
+    run.errored("CI ERROR ENCOUNTERED\n#{error.class}: #{error.message}") rescue nil
 
-    run.deploy_started
-    unless app.deploy!(run)
-      run.deploy_failed
-      next
-    end
-
-    run.deployed
+  rescue Exception => exception
+    run.errored("#{exception.class}: #{exception.message}") rescue nil
+    raise
   end
 
   #

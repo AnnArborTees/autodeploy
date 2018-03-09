@@ -42,7 +42,7 @@ class RailsApp < App
       failed_specs.each do |file|
         spec_output.clear
 
-        run.send_to_output "===== Retrying failed spec: #{file} ====="
+        run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
         passed = run.record('bundle', 'exec', 'rspec', file) do |line|
           spec_output << line
         end
@@ -55,7 +55,7 @@ class RailsApp < App
           # NOTE failed_spec_info is for the failure email
           failed_spec_info << {
             file: file,
-            output: color2html(joined_output)
+            output: Util.color2html(joined_output)
               .gsub("\n", "<br />")
               .gsub('   ', ' &nbsp;&nbsp;')
               .gsub('  ', ' &nbsp;')

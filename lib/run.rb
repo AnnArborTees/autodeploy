@@ -1,5 +1,6 @@
 require 'mysql2'
 require_relative 'util'
+require_relative 'failure'
 
 Util.establish_activerecord_connection
 
@@ -50,10 +51,10 @@ class Run < ActiveRecord::Base
     semaphore = Mutex.new
 
     Open3.popen3(*cmdline) do |_stdin, stdout, stderr, process|
-      read_output_stream = lambda do |stream, send_output_proc|
+      read_output_stream = lambda do |process_stream, send_output_proc, real_stream|
         lambda do
-          while (output = stream.gets)
-            puts output
+          while (output = process_stream.gets)
+            real_stream.puts output
             send_output_proc.call(output)
             semaphore.synchronize { block.call(output) } if block
           end
@@ -61,8 +62,8 @@ class Run < ActiveRecord::Base
       end
 
       [
-        Thread.new(&read_output_stream[stdout, send_output]),
-        Thread.new(&read_output_stream[stderr, send_error_output])
+        Thread.new(&read_output_stream[stdout, send_output, STDOUT]),
+        Thread.new(&read_output_stream[stderr, send_error_output, STDERR])
       ].each(&:join)
 
       done = true
@@ -110,7 +111,13 @@ class Run < ActiveRecord::Base
   end
 
   def errored(message)
-    send_to_output(message, 'spec_output')
+    client = Run.connection
+
+    message = Util.color2html(message)
+    message = Util.wrap_with_error_span(message)
+    message = "'#{client.quote_string(message)}'"
+
+    send_to_output_raw(message, current_output_field || 'spec_output', client)
     update_column :status, 'error'
   end
 
