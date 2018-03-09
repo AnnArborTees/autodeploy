@@ -82,12 +82,13 @@ class Run < ActiveRecord::Base
   end
 
   def errored(message)
-    send_to_output('spec_output', message)
+    send_to_output(message, 'spec_output')
     update_column :status, 'error'
   end
 
-  def send_to_output(output_field, message, client = nil)
+  def send_to_output(message, output_field = nil, client = nil)
     client ||= Run.connection
+    output_field ||= current_output_field
 
     client.execute(
       "UPDATE runs SET #{output_field} = " \
@@ -121,7 +122,7 @@ class Run < ActiveRecord::Base
         retries = 10
         begin
           Run.connection_pool.with_connection do |client|
-            send_to_output(output_field, total_output, client)
+            send_to_output(total_output, output_field, client)
           end
 
         rescue Mysql2::Error => e
