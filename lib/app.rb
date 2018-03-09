@@ -37,12 +37,17 @@ class App
 
       # Keep resetting and pulling until the commit hash changes
       # -- then we know we have new code.
-      while new_commit == @commit
-        sleep rand(DELAY_BETWEEN_PULLS)
+      pull = lambda do
         Git.reset_hard!
         Git.pull!
 
         new_commit = Git.commit_hash
+      end
+
+      pull.call
+      while new_commit == @commit
+        sleep rand(DELAY_BETWEEN_PULLS)
+        pull.call
       end
 
       @commit = new_commit
@@ -68,7 +73,7 @@ class App
 
   def deploy!(run)
     deploy_commands.each do |command|
-      succeeded = run.record(*command)
+      succeeded = run.record_process(*command)
 
       unless succeeded
         run.errored("Failed to execute `#{command.join(' ')}` for deploy")

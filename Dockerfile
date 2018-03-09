@@ -24,6 +24,7 @@ RUN mkdir -p /home/test_app
 COPY ./test_environment/test_app/* /home/test_app
 COPY ./test_environment/git-start.tar.gz /gitstuff/git-start.tar.gz
 COPY ./test_environment/git-updated.tar.gz /gitstuff/git-updated.tar.gz
+COPY ./test_environment/begin.bash /home/begin.bash
 
 # Set up fake (local) git remote
 RUN cd /home/test_app            && tar -xf /gitstuff/git-start.tar.gz
@@ -36,8 +37,7 @@ RUN cd /home/test_app            && git branch --set-upstream-to=origin/master m
 COPY ./test_environment/autodeploy.json /home/autodeploy.json
 
 # Autodeploy
-RUN mkdir -p /home/autodeploy
-COPY ./ /home/autodeploy/
-RUN cd /home/autodeploy && bundle install
+#RUN mkdir -p /home/autodeploy
+#COPY ./ /home/autodeploy/
 
-CMD ruby /home/autodeploy/lib/ci.rb /home/test_app test --once
+CMD bash ./begin.bash

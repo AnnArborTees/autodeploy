@@ -15,7 +15,8 @@ class TestApp < App
 
   def deploy_commands
     [
-      %w('echo', 'deploying', 'code')
+      %w(echo deploying code),
+      %w(echo totally deployed code)
     ]
   end
 end

@@ -7,6 +7,8 @@ class Run < ActiveRecord::Base
   has_many :failures, inverse_of: :run
 
   after_initialize { self.status ||= 'initialized' }
+  after_initialize { self.spec_output ||= '' }
+  after_initialize { self.deploy_output ||= '' }
 
   attr_accessor :current_output_field
 
@@ -63,6 +65,7 @@ class Run < ActiveRecord::Base
   def deploy_started
     update_attributes!(
       status: 'deploy_started',
+      specs_ended_at: Time.now,
       deploy_started_at: Time.now
     )
   end

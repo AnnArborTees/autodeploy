@@ -5,16 +5,30 @@ version: '2'
 networks:
   autodeploy:
 
+volumes:
+  bundler:
+
 services:
-  interactive:
+  test:
     build: .
     networks:
       - autodeploy
     volumes:
       - ".:/home/autodeploy"
+      - "bundler:/usr/local/bundle"
     depends_on:
       - database
-    command: bash
+
+  inspect:
+    build: .
+    networks:
+      - autodeploy
+    volumes:
+      - ".:/home/autodeploy"
+      - "bundler:/usr/local/bundle"
+    depends_on:
+      - database
+    entrypoint: /bin/bash /home/autodeploy/test_environment/show_last_run.bash
 
   database:
     image: "mysql:5.5"

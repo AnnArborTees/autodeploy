@@ -3,11 +3,13 @@ require_relative 'test_app'
 
 require 'byebug'
 
-APP_DIR = ARGV[0]
-APP_TYPE = ARGV[1]
+non_flag_arguments = ARGV.reject { |a| a.include?('--') }
+
+APP_DIR = non_flag_arguments[0]
+APP_TYPE = non_flag_arguments[1]
 
 if APP_DIR.nil? || APP_TYPE.nil?
-  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force|--once]"
+  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force|--once|--log]"
   exit 1
 end
 
@@ -17,6 +19,16 @@ end
 
 def run_once?
   ARGV.include?('--once') || force?
+end
+
+def log?
+  ARGV.include?('--debug')
+end
+
+if log?
+  $logger = Logger.new(STDOUT)
+  $logger.level = Logger::DEBUG
+  ActiveRecord::Base.logger = $logger
 end
 
 case APP_TYPE
@@ -45,7 +57,7 @@ loop do
     #
     # See if we already have a run started for this commit
     #
-    if Run.exists?(commit: app.commit)
+    if !run_once? && Run.exists?(commit: app.commit)
       puts "Run already exists for #{app.commit}"
       next
     end
@@ -77,7 +89,7 @@ loop do
       next
     end
 
-    app.deployed
+    run.deployed
   end
 
   #
