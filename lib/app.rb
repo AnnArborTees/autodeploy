@@ -54,7 +54,7 @@ class App
       succeeded = run.record_process(*command)
 
       unless succeeded
-        run.errored("Failed to execute `#{command.join(' ')}`")
+        run.errored("Failed to execute `#{command.join(' ')}` for setup")
         return false
       end
     end
@@ -67,7 +67,16 @@ class App
   end
 
   def deploy!(run)
-    run.record(*deploy_command)
+    deploy_commands.each do |command|
+      succeeded = run.record(*command)
+
+      unless succeeded
+        run.errored("Failed to execute `#{command.join(' ')}` for deploy")
+        return false
+      end
+    end
+
+    true
   end
 
   def in_app_dir(&block)
@@ -80,7 +89,7 @@ class App
     raise "`setup_commands` unimplemented in #{self.class.name}"
   end
 
-  def deploy_command
-    raise "`deploy_command` unimplemented in #{self.class.name}"
+  def deploy_commands
+    raise "`deploy_commands` unimplemented in #{self.class.name}"
   end
 end

@@ -1,15 +1,13 @@
 require_relative 'rails_app'
+require_relative 'test_app'
 
 require 'byebug'
 
-# We select a random delay time to decrease the chances of
-# both CI machines pulling the same commit.
-DELAY_BETWEEN_PULLS = (5.0...15.0)
 APP_DIR = ARGV[0]
 APP_TYPE = ARGV[1]
 
 if APP_DIR.nil? || APP_TYPE.nil?
-  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force]"
+  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force|--once]"
   exit 1
 end
 
@@ -17,8 +15,13 @@ def force?
   ARGV.include?('--force')
 end
 
+def run_once?
+  ARGV.include?('--once') || force?
+end
+
 case APP_TYPE
 when 'rails' then app = RailsApp.new(APP_DIR)
+when 'test' then app = TestApp.new(APP_DIR)
 else raise "Error: unknown app type #{APP_TYPE.inspect}"
 end
 
@@ -61,14 +64,24 @@ loop do
     next unless app.run_setup_commands!(run)
 
     run.specs_started
-    next unless app.run_tests!(run)
+    unless app.run_tests!(run)
+      run.specs_failed
+      next
+    end
 
     run.current_output_field = 'deploy_output'
-    app.deploy!(run)
+
+    run.deploy_started
+    unless app.deploy!(run)
+      run.deploy_failed
+      next
+    end
+
+    app.deployed
   end
 
   #
   # Exit before looping if this run was forced
   #
-  exit 0 if force?
+  break if run_once?
 end

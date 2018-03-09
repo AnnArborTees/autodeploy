@@ -49,8 +49,35 @@ class Run < ActiveRecord::Base
   def specs_started
     update_attributes!(
       status: 'specs_started',
-      specs_started_at: Time.now,
-      spec_output: ''
+      specs_started_at: Time.now
+    )
+  end
+
+  def specs_failed
+    update_attributes!(
+      status: 'specs_failed',
+      specs_ended_at: Time.now
+    )
+  end
+
+  def deploy_started
+    update_attributes!(
+      status: 'deploy_started',
+      deploy_started_at: Time.now
+    )
+  end
+
+  def deploy_failed
+    update_attributes!(
+      status: 'deploy_failed',
+      deploy_ended_at: Time.now
+    )
+  end
+
+  def deployed
+    update_attributes!(
+      status: 'deployed',
+      deploy_ended_at: Time.now
     )
   end
 

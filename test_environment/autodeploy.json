@@ -1,5 +1,5 @@
 {
-  "subnets": [""],
+  "subnets": ["1"],
   "mysql2": {
     "host":     "database",
     "username": "root",

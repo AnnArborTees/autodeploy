@@ -16,45 +16,6 @@ services:
       - database
     command: bash
 
-    #   specs_and_deploy_pass:
-    #     build:
-    #       dockerfile: ./Dockerfile
-    #       context: .
-    #       args:
-    #         mockbundle: mock_bundle.rb
-    #     volumes:
-    #       - ".:/home/autodeploy"
-    #     networks:
-    #       - autodeploy
-    #     depends_on:
-    #       - database
-    # 
-    #   specs_fail:
-    #     build:
-    #       dockerfile: ./Dockerfile
-    #       context: .
-    #       args:
-    #         mockbundle: mock_bundle_specs_fail.rb
-    #     volumes:
-    #       - ".:/home/autodeploy"
-    #     networks:
-    #       - autodeploy
-    #     depends_on:
-    #       - database
-    # 
-    #   deploy_fails:
-    #     build:
-    #       dockerfile: ./Dockerfile
-    #       context: .
-    #       args:
-    #         mockbundle: mock_bundle_deploy_fail.rb
-    #     volumes:
-    #       - ".:/home/autodeploy"
-    #     networks:
-    #       - autodeploy
-    #     depends_on:
-    #       - database
-
   database:
     image: "mysql:5.5"
     networks:

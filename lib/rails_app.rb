@@ -73,8 +73,10 @@ class RailsApp < App
     run.failures.empty?
   end
 
-  def deploy_command
-    %w(bundle exec cap production deploy)
+  def deploy_commands
+    [
+      %w(bundle exec cap production deploy)
+    ]
   end
 
   private
