@@ -3,12 +3,17 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 function bad_args {
-  echo "Usage: $0 <app root>"
+  echo "Usage: $0 <app root> <app type>"
   exit 1
 }
 
 app_path=$1
 if [ "$app_path" == "" ]
+then
+  bad_args
+fi
+app_type=$2
+if [ "$app_type" == "" ]
 then
   bad_args
 fi
@@ -44,7 +49,7 @@ else
   tmux send-keys "cd '${SCRIPT_DIR}'"      C-m
   tmux send-keys 'eval $(ssh-agent -s)'    C-m
   tmux send-keys "ssh-add ssh/*.pem"       C-m
-  tmux send-keys "./ci.bash '${app_path}'" C-m
+  tmux send-keys "ruby lib/ci.rb '${app_path}' '${app_type}'" C-m
 
   echo "Run \`tmux a -t ${name}:0.0\` to attach."
   echo "Once attached, press Ctrl+B and then D to detach."

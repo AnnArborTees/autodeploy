@@ -1,6 +1,6 @@
 # Ann Arbor Tees Autodeploy
 
-Our custom CI infrastructure for Rails apps using Capistrano.
+Our custom CI infrastructure.
 
 
 
@@ -9,31 +9,17 @@ Our custom CI infrastructure for Rails apps using Capistrano.
 The `Dockerfile` and `docker-compose` are used to provide a test environment
 with a fake git repository that can be fast-forwarded.
 
-#### Run all verifications:
+To run the CI system once with a `TestApp`, execute
 
 ```bash
-sudo ./verify.sh
+docker-compose run test
 ```
 
-It takes some time -- especially on the first run, since it has to build the containers.
-
-#### Open interactive test environment:
+To inspect the last run created on the test database,
 
 ```bash
-sudo ./test_environment/begin.sh
+docker-compose run inspect
 ```
-
-or with a specific scenario's environment:
-
-```bash
-sudo ./test_environment/begin.sh specs_fail
-```
-
-### How
-
-The `bundle` binary is stubbed in these test environments. Check out
-`test_environment/bundle_stub.rb` and `test_environment/mock_bundle*.rb`.
-
 
 ## Using (automated testing/deployment for apps)
 
@@ -55,13 +41,19 @@ This describes the MYSQL database in which spec and deployment results will be d
 
 ### Running in-place
 ```bash
-./ci.bash /path/to/project-root/
+ruby lib/ci.rb /path/to/project-root/ type_of_app
 ```
 
-### Running detached
+### Running "detached"
+This will run the CI script inside of a tmux session.
+This lets us add ssh keys to the SSH agent for the deploy command.
+(it also lets us inspect the running ci script whenever we want.)
+
 ```bash
-./ci-detached.bash /path/to/project-root/
+./ci-detached.bash /path/to/project-root/ type_of_app
 ```
+
+Where `type_of_app` is either `rails` or `test` (hard-coded before the loop in lib/ci.rb)
 
 ### To start on bootup
 

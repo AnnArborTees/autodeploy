@@ -17,6 +17,9 @@ class TestApp < App
       stderr_output += line
     end
 
+    run.failures.create(output: "Wowee! This is a test failure. We'll still mark this test as 'deployed'.")
+    run.failures.create(output: "Another test failure, to see how things fare with multiple failures")
+
     run.record('echo', "FROM STDERR: ", stderr_output)
   end
 
