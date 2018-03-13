@@ -50,6 +50,7 @@ class Run < ActiveRecord::Base
 
     semaphore = Mutex.new
 
+    puts "#{cmdline.join(' ')}"
     Open3.popen3(*cmdline) do |_stdin, stdout, stderr, process|
       read_output_stream = lambda do |process_stream, send_output_proc, real_stream|
         lambda do

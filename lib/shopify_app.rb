@@ -19,7 +19,7 @@ class ShopifyApp < App
   def deploy_commands
     [
       %w(yarn build),
-      %w(scp -r build/* ubuntu@52.5.26.219:~/ReactApps/aatc-ssa-shopify)
+      "scp -r #{directory}/build/* ubuntu@52.5.26.219:~/ReactApps/aatc-ssa-shopify"
     ]
   end
 end
