@@ -1,5 +1,6 @@
 require_relative 'rails_app'
 require_relative 'test_app'
+require_relative 'shopify_app'
 
 require 'byebug'
 
@@ -38,6 +39,7 @@ end
 case APP_TYPE
 when 'rails' then app = RailsApp.new(APP_DIR)
 when 'test' then app = TestApp.new(APP_DIR)
+when 'shopify' then app = ShopifyApp.new(APP_DIR)
 else raise "Error: unknown app type #{APP_TYPE.inspect}"
 end
 
