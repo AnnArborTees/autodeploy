@@ -56,7 +56,7 @@ class Run < ActiveRecord::Base
           while (output = process_stream.gets)
             real_stream.puts output
             send_output_proc.call(output)
-            semaphore.synchronize { block.call(output) } if block
+            semaphore.synchronize { block.call(output, process_stream == stderr) } if block
           end
         end
       end
