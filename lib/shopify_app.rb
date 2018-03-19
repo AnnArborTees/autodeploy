@@ -10,6 +10,7 @@ class ShopifyApp < App
 
   def run_tests!(run)
     ENV['CI'] = 'true'
+    %w(npm test -- -u)
     success = run.record('yarn', 'test')
     ENV.delete 'CI'
 
