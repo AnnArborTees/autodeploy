@@ -10,4 +10,5 @@ gem "activerecord"
 
 group :test do
   gem "rspec"
+  gem 'byebug'
 end

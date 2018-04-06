@@ -1,8 +1,8 @@
 require 'spec_helper'
-require_relative '../../lib/db'
+require_relative '../../lib/util'
 
-RSpec.describe Db do
-  subject { Class.new { include Db }.new }
+RSpec.describe Util do
+  subject { Class.new { include Util }.new }
 
   describe '#own_ip_address' do
     before do
