@@ -50,5 +50,25 @@ Date:   Mon Feb 26 16:27:03 2018 -0500
 }
   end
 
+  def git_branch_a
+    StringIO.new %{  email-on-failure
+* master
+  multi-rspec
+  random-failures-workaround
+  rework
+  remotes/origin/email-on-failure
+  remotes/origin/master
+  remotes/origin/multi-rspec
+  remotes/origin/random-failures-workaround
+  remotes/origin/rework
+}
+  end
+
+  def git_checkout
+    StringIO.new %{Switched to a new branch 'story-2222-stefan'
+Branch story-2222-stefan set up to track remote branch story-2222-stefan from origin.
+}
+  end
+
   extend self
 end

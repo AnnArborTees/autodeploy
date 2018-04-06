@@ -21,6 +21,49 @@ module Git
     stdout.close
   end
 
+  def branches
+    # Parse out all the available remote branches.
+    #
+    stdin, stdout, _process = Open3.popen2('git', 'branch', '-a')
+
+    results = []
+
+    while line = stdout.gets
+      line = line.chomp.strip
+      prefix = 'remotes/origin/'
+      results << line.gsub(prefix, '') if line.start_with?(prefix)
+    end
+
+    results
+
+  ensure
+    stdin.close
+    stdout.close
+  end
+
+  def checkout(branch)
+    # Switch to given branch.
+    #
+    stdin, stdout, _process = Open3.popen2e('git', 'checkout', branch)
+
+    lines = []
+    while line = stdout.gets
+      lines << line.chomp.strip
+    end
+
+    expected_lines = ["Switched to branch '#{branch}'", "Switched to a new branch '#{branch}'"]
+
+    unless expected_lines.any? { |l| lines.include?(l) }
+      raise "Failed to checkout #{branch.inspect} \n\n#{lines.join("\n").inspect}"
+    end
+
+    true
+
+  ensure
+    stdin.close
+    stdout.close
+  end
+
   def commit_hash
     # The first line of `git show HEAD` is "commit abc123".
     # So, we split off the "commit" part and return the rest.

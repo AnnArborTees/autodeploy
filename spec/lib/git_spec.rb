@@ -10,6 +10,14 @@ RSpec.describe Git do
     allow(Open3).to receive(:popen2)
       .with('git', 'show', 'HEAD')
       .and_return [StringIO.new, OutputStub.git_show, nil]
+
+    allow(Open3).to receive(:popen2)
+      .with('git', 'branch', '-a')
+      .and_return [StringIO.new, OutputStub.git_branch_a, nil]
+
+    allow(Open3).to receive(:popen2e)
+      .with('git', 'checkout', 'story-2222-stefan')
+      .and_return [StringIO.new, OutputStub.git_checkout, nil]
   end
 
   describe '#commit_hash' do
@@ -27,6 +35,24 @@ RSpec.describe Git do
   describe '#commit_message' do
     it "returns the commit message" do
       expect(Git.commit_message).to eq "(HOTFIX) Fixed how dates were being sent to production."
+    end
+  end
+
+  describe '#branches' do
+    subject { Git.branches }
+
+    it "returns all remote branches" do
+      expect(subject).to include 'email-on-failure'
+      expect(subject).to include 'master'
+      expect(subject).to include 'multi-rspec'
+      expect(subject).to include 'random-failures-workaround'
+      expect(subject).to include 'rework'
+    end
+  end
+
+  describe '#checkout' do
+    it "checks out the given branch" do
+      expect(Git.checkout('story-2222-stefan')).to be_truthy
     end
   end
 end
