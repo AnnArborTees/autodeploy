@@ -58,7 +58,7 @@ module Git
     ]
 
     unless expected_lines.any? { |l| lines.include?(l) }
-      raise "Failed to checkout #{branch.inspect} \n\n#{lines.join("\n").inspect}"
+      raise "Failed to checkout #{branch.inspect} \n\n#{lines.join("\n")}"
     end
 
     branch
