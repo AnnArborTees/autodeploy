@@ -51,13 +51,17 @@ module Git
       lines << line.chomp.strip
     end
 
-    expected_lines = ["Switched to branch '#{branch}'", "Switched to a new branch '#{branch}'"]
+    expected_lines = [
+      "Switched to branch '#{branch}'",
+      "Switched to a new branch '#{branch}'",
+      "Already on '#{branch}'"
+    ]
 
     unless expected_lines.any? { |l| lines.include?(l) }
       raise "Failed to checkout #{branch.inspect} \n\n#{lines.join("\n").inspect}"
     end
 
-    true
+    branch
 
   ensure
     stdin.close

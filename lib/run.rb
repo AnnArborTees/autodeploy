@@ -111,6 +111,13 @@ class Run < ActiveRecord::Base
     )
   end
 
+  def specs_passed
+    update_attributes!(
+      status: 'specs_passed',
+      specs_ended_at: Time.now
+    )
+  end
+
   def errored(message)
     client = Run.connection
 

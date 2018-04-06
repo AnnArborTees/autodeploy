@@ -26,6 +26,14 @@ def debug?
   @arguments.debug
 end
 
+def branches
+  @arguments.branches
+end
+
+def deploy_branch
+  @arguments.deploy_branch
+end
+
 if log?
   $logger = Logger.new(STDOUT)
   $logger.level = Logger::DEBUG
@@ -47,14 +55,14 @@ loop do
     #
     # Don't bother pulling code if --force was specified
     #
-    puts "Not going to bother pulling -- running with #{app.commit}"
+    puts "Not going to bother pulling -- running with #{app.commit} on #{app.branch}"
   else
     #
     # Pull until we have new code
     #
-    app.pull_until_new_code!
+    app.pull_until_new_code!(branches)
 
-    puts "New code found! HEAD is now #{app.commit}"
+    puts "New code found! Branch: #{app.branch}, HEAD is now #{app.commit}"
 
     #
     # See if we already have a run started for this commit
@@ -65,7 +73,7 @@ loop do
     end
   end
 
-  puts "Beginning run for #{app.commit}"
+  puts "Beginning run for #{app.commit} on #{app.branch}"
 
   #
   # Set up the 'run' entry in the database, and
@@ -84,15 +92,19 @@ loop do
         next
       end
 
-      run.current_output_field = 'deploy_output'
+      if run.branch == deploy_branch
+        run.current_output_field = 'deploy_output'
 
-      run.deploy_started
-      unless app.deploy!(run)
-        run.deploy_failed
-        next
+        run.deploy_started
+        unless app.deploy!(run)
+          run.deploy_failed
+          next
+        end
+
+        run.deployed
+      else
+        run.specs_passed
       end
-
-      run.deployed
     end
 
   rescue StandardError => error

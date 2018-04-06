@@ -10,12 +10,14 @@ class App
   attr_reader :directory
   attr_reader :name
   attr_reader :commit
+  attr_reader :branch
 
   def initialize(directory)
     @directory = directory
     @name = File.basename(@directory)
 
     @commit = in_app_dir { Git.commit_hash }
+    @branch = in_app_dir { Git.branch }
   end
 
   def create_run
@@ -31,26 +33,30 @@ class App
     end
   end
 
-  def pull_until_new_code!
+  def pull_until_new_code!(branches)
     in_app_dir do
-      new_commit = Git.commit_hash
+      branch_index = branches.index(Git.branch) || 0
+      Git.checkout branches[branch_index]
 
-      # Keep resetting and pulling until the commit hash changes
-      # -- then we know we have new code.
-      pull = lambda do
+      loop do
+        # Reset then Pull (the reset is because sometimes files get leftover)
+        old_commit = Git.commit_hash
         Git.reset_hard!
         Git.pull!
-
         new_commit = Git.commit_hash
-      end
 
-      pull.call
-      while new_commit == @commit
-        sleep rand(DELAY_BETWEEN_PULLS)
-        pull.call
+        if new_commit != old_commit
+          # FOUND NEW COMMIT!
+          @branch = branches[branch_index]
+          @commit = new_commit
+          break
+        else
+          # Delay, then try the next branch
+          sleep rand(DELAY_BETWEEN_PULLS / branches.size.to_f)
+          branch_index = (branch_index + 1) % branches.size
+          Git.checkout branches[branch_index]
+        end
       end
-
-      @commit = new_commit
     end
   end
 
