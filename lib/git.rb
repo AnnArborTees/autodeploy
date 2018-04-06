@@ -3,6 +3,10 @@
 require 'open3'
 
 module Git
+  def fetch
+    system "git fetch"
+  end
+
   def branch
     # The first line of git status is:
     # "On branch <branch name>"

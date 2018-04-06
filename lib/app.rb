@@ -35,6 +35,8 @@ class App
 
   def pull_until_new_code!(branches)
     in_app_dir do
+      Git.fetch
+
       branch_index = branches.index(Git.branch) || 0
       Git.checkout branches[branch_index]
 
@@ -52,7 +54,7 @@ class App
           break
         else
           # Delay, then try the next branch
-          sleep rand(DELAY_BETWEEN_PULLS / branches.size.to_f)
+          sleep rand(DELAY_BETWEEN_PULLS) / branches.size.to_f
           branch_index = (branch_index + 1) % branches.size
           Git.checkout branches[branch_index]
         end
