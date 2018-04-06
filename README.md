@@ -2,6 +2,12 @@
 
 Our custom CI infrastructure.
 
+Entrypoint is `lib/ci.rb`.
+
+Code that specifies which commands to run is in `lib/*_app.rb`.
+
+Code for sending output to the database is in `lib/run.rb`.
+
 
 
 ## Testing (verifying the CI works)
