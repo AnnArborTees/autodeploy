@@ -1,33 +1,29 @@
 require_relative 'rails_app'
 require_relative 'test_app'
 require_relative 'shopify_app'
+require_relative 'args'
 
 require 'byebug'
 
-non_flag_arguments = ARGV.reject { |a| a.include?('--') }
+@arguments = parse_command_line_arguments(ARGV)
 
-APP_DIR = non_flag_arguments[0]
-APP_TYPE = non_flag_arguments[1]
-
-if APP_DIR.nil? || APP_TYPE.nil?
-  STDERR.puts "Usage: ruby ci.rb <app dir> <app type> [--force|--once|--log]"
-  exit 1
-end
+APP_DIR = @arguments.app_dir
+APP_TYPE = @arguments.app_type
 
 def force?
-  ARGV.include?('--force')
+  @arguments.force
 end
 
 def run_once?
-  ARGV.include?('--once') || force?
+  @arguments.force || @arguments.run_once
 end
 
 def log?
-  ARGV.include?('--debug')
+  @arguments.debug
 end
 
 def debug?
-  ARGV.include?('--debug')
+  @arguments.debug
 end
 
 if log?
