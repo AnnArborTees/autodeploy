@@ -144,6 +144,17 @@ module Util
         ")"
       )
     end
+
+    unless tables.include?("requests")
+      client.query(
+        "CREATE TABLE requests ("\
+        "id               int   NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
+        "action  varchar(255)   NOT NULL, "\
+        "target  varchar(255)   NOT NULL,"\
+        "state   varchar(255)   NOT NULL"\
+        ")"
+      )
+    end
   end
 
   extend self

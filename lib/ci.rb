@@ -81,7 +81,7 @@ class CI
           #
           # See if we already have a run started for this commit
           #
-          if !run_once? && Run.exists?(commit: app.commit)
+          if !run_once && Run.exists?(commit: app.commit)
             puts "Run already exists for #{app.commit}"
             next
           end
@@ -145,7 +145,7 @@ class CI
         #
         # Exit before looping if this run was forced
         #
-        break if run_once?
+        break if run_once
       end
 
     rescue Exception => exception

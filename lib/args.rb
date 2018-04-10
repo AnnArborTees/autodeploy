@@ -1,6 +1,6 @@
 require 'optparse'
 
-Options = Struct.new(:app_dir, :app_type, :force, :run_once, :debug, :branches, :deploy_branch)
+Options = Struct.new(:app_dir, :app_type, :force, :run_once, :debug, :branches, :deploy_branch, :control_server)
 
 def parse_command_line_arguments(argv)
   result = Options.new
@@ -8,6 +8,7 @@ def parse_command_line_arguments(argv)
   result.debug = false
   result.branches = []
   result.deploy_branch = 'master'
+  result.control_server = false
 
   opts = nil
   parser = OptionParser.new do |option_parser|
@@ -32,6 +33,10 @@ def parse_command_line_arguments(argv)
 
     opts.on '-pBRANCH', "--deploy BRANCH", "Only deploy when tests pass on BRANCH (defaults to master)" do |b|
       result.deploy_branch = b
+    end
+
+    opts.on '-s', "--control-server", "Run an HTTP server that can be used to query status and cancel runs" do
+      result.control_server = true
     end
 
     opts.on '-h', "--help", "Print this message" do
