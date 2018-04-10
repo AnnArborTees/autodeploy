@@ -49,7 +49,7 @@ else
   tmux send-keys "cd '${SCRIPT_DIR}'"      C-m
   tmux send-keys 'eval $(ssh-agent -s)'    C-m
   tmux send-keys "ssh-add ssh/*.pem"       C-m
-  tmux send-keys "ruby lib/ci.rb '${app_path}' '${app_type}'" C-m
+  tmux send-keys "ruby lib/main.rb '${app_path}' '${app_type}'" C-m
 
   echo "Run \`tmux a -t ${name}:0.0\` to attach."
   echo "Once attached, press Ctrl+B and then D to detach."

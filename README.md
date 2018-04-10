@@ -2,7 +2,7 @@
 
 Our custom CI infrastructure.
 
-Entrypoint is `lib/ci.rb`.
+Entrypoint is `lib/main.rb`.
 
 Code that specifies which commands to run is in `lib/*_app.rb`.
 
@@ -47,7 +47,7 @@ This describes the MYSQL database in which spec and deployment results will be d
 
 ### Running in-place
 ```bash
-ruby lib/ci.rb /path/to/project-root/ type_of_app
+ruby lib/main.rb /path/to/project-root/ type_of_app
 ```
 
 ### Running "detached"
@@ -59,7 +59,7 @@ This lets us add ssh keys to the SSH agent for the deploy command.
 ./ci-detached.bash /path/to/project-root/ type_of_app
 ```
 
-Where `type_of_app` is either `rails` or `test` (hard-coded before the loop in lib/ci.rb)
+Where `type_of_app` is either `rails` or `test` (hard-coded before the loop in lib/main.rb)
 
 ### To start on bootup
 

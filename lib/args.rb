@@ -12,7 +12,7 @@ def parse_command_line_arguments(argv)
   opts = nil
   parser = OptionParser.new do |option_parser|
     opts = option_parser
-    opts.banner = "Usage: ruby ci.rb path/to/app app_type [options]"
+    opts.banner = "Usage: ruby main.rb path/to/app app_type [options]"
 
     opts.on '-o', "--once", "Only pull once (don't loop)" do
       result.run_once = true

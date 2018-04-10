@@ -2,6 +2,8 @@ require_relative 'git'
 require_relative 'run'
 require_relative 'util'
 
+require 'digest'
+
 class App
   # We select a random delay time to decrease the chances of
   # both CI machines pulling the same commit.
@@ -15,9 +17,22 @@ class App
   def initialize(directory)
     @directory = directory
     @name = File.basename(@directory)
+  end
 
-    @commit = in_app_dir { Git.commit_hash }
-    @branch = in_app_dir { Git.branch }
+  def checkout!(branch)
+    in_app_dir do
+      Git.checkout branch
+      @branch = Git.branch
+      @commit = Git.commit_hash
+    end
+  end
+
+  def unique_port
+    1000 + Digest::MD5.digest(name).bytes.inject { |a,b| (a<<8)+b } % 9000
+  end
+
+  def available_branches
+    in_app_dir { Git.branches }
   end
 
   def create_run

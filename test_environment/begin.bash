@@ -4,4 +4,4 @@ pushd /home/autodeploy
 bundle install
 popd
 
-ruby /home/autodeploy/lib/ci.rb /home/test_app test --once --debug
+ruby /home/autodeploy/lib/main.rb /home/test_app test --once --debug
