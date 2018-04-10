@@ -48,31 +48,27 @@ class App
     end
   end
 
-  def pull_until_new_code!(branches)
+  def try_pulling!(branches)
     in_app_dir do
       Git.fetch
 
-      branch_index = branches.index(Git.branch) || 0
+      branch_index = ((branches.index(Git.branch) || -1) + 1) % branches.size
       Git.checkout branches[branch_index]
 
-      loop do
-        # Reset then Pull (the reset is because sometimes files get leftover)
-        old_commit = Git.commit_hash
-        Git.reset_hard!
-        Git.pull!
-        new_commit = Git.commit_hash
+      # Reset then Pull (the reset is because sometimes files get left over)
+      # TODO perhaps we should add+stash instead of reset --hard!
+      old_commit = Git.commit_hash
+      Git.reset_hard!
+      Git.pull!
+      new_commit = Git.commit_hash
 
-        if new_commit != old_commit
-          # FOUND NEW COMMIT!
-          @branch = branches[branch_index]
-          @commit = new_commit
-          break
-        else
-          # Delay, then try the next branch
-          sleep rand(DELAY_BETWEEN_PULLS) / branches.size.to_f
-          branch_index = (branch_index + 1) % branches.size
-          Git.checkout branches[branch_index]
-        end
+      if new_commit != old_commit
+        # FOUND NEW COMMIT!
+        @branch = branches[branch_index]
+        @commit = new_commit
+        true
+      else
+        false
       end
     end
   end
@@ -105,6 +101,50 @@ class App
     end
 
     true
+  end
+
+  #
+  # This method gets called instead of run_tests_and_deploy! when
+  # a request is being processed for this app.
+  #
+  def handle_request!(request, run, deploy_branch)
+    raise "#{self.class.name} can't handle requests!"
+  end
+
+  #
+  # This method is in charge of calling run_tests!, then deploy!
+  # based on test success.
+  #
+  def run_tests_and_deploy!(run, deploy_branch)
+    return unless run_setup_commands!(run)
+
+    Thread.current[:ci_status] = "Running tests"
+
+    run.specs_started
+    unless run_tests!(run)
+      Thread.current[:ci_status] = "Specs failed"
+      run.specs_failed
+      return
+    end
+
+    if run.branch == deploy_branch
+      run.current_output_field = 'deploy_output'
+
+      Thread.current[:ci_status] = "Deploying"
+
+      run.deploy_started
+      unless deploy!(run)
+        run.deploy_failed
+        Thread.current[:ci_status] = "Deploy failed"
+        return
+      end
+
+      Thread.current[:ci_status] = "Deployed"
+      run.deployed
+    else
+      Thread.current[:ci_status] = "Specs passed"
+      run.specs_passed
+    end
   end
 
   def in_app_dir(&block)

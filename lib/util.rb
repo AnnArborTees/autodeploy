@@ -149,9 +149,12 @@ module Util
       client.query(
         "CREATE TABLE requests ("\
         "id               int   NOT NULL PRIMARY KEY AUTO_INCREMENT, "\
-        "action  varchar(255)   NOT NULL, "\
-        "target  varchar(255)   NOT NULL,"\
-        "state   varchar(255)   NOT NULL"\
+        "app      varchar(255)   NOT NULL, "\
+        "action   varchar(255)   NOT NULL, "\
+        "state    varchar(255)   DEFAULT 'pending',"\
+        "target   varchar(255),"\
+        "created_at   datetime,"\
+        "updated_at   datetime"\
         ")"
       )
     end

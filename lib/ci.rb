@@ -2,6 +2,7 @@ require_relative 'rails_app'
 require_relative 'test_app'
 require_relative 'shopify_app'
 require_relative 'args'
+require_relative 'request'
 
 class CI
   attr_reader :arguments
@@ -49,19 +50,14 @@ class CI
     branches = options[:branches] || @arguments.branches
     deploy_branch = options[:deploy_branch] || @arguments.deploy_branch
 
-    # If options were supplied, we want to start the thread over like normal
-    if options.empty?
-      callback = -> { }
-    else
-      callback = -> { create_thread! }
-    end
-
-    @thread = Thread.new { LOOP[@app, force, run_once, branches, deploy_branch, callback] }
+    @thread = Thread.new { LOOP[@app, force, run_once, branches, deploy_branch] }
   end
 
-  LOOP = lambda do |app, force, run_once, branches, deploy_branch, callback|
+  LOOP = lambda do |app, force, run_once, branches, deploy_branch|
     begin
       loop do
+        request = nil
+
         if force
           #
           # Don't bother pulling code if --force was specified
@@ -71,23 +67,38 @@ class CI
           puts "Not going to bother pulling -- running with #{app.commit} on #{app.branch}"
         else
           #
-          # Pull until we have new code
+          # Pull until either we have new code, or a request comes in
           #
           Thread.current[:ci_status] = "Pulling for #{branches.join(', ')}"
-          app.pull_until_new_code!(branches)
+
+          loop do
+            break if app.try_pulling!(branches)
+
+            if (pending_request = Request.pending.where(app: app.name).first)
+              request = pending_request
+              request.update_column :state, 'in_progress'
+              break
+            end
+          end
 
           puts "New code found! Branch: #{app.branch}, HEAD is now #{app.commit}"
 
           #
           # See if we already have a run started for this commit
+          # (unless we're processing a request)
           #
-          if !run_once && Run.exists?(commit: app.commit)
+          if !request && !run_once && Run.exists?(commit: app.commit)
             puts "Run already exists for #{app.commit}"
             next
           end
         end
 
-        begin_message = "Beginning run for #{app.commit} on #{app.branch}"
+        #
+        # Set up the app's branch and commit for a request if necessary
+        #
+        request.prepare_app!(app) if request
+
+        begin_message = "Beginning #{request ? 'request' : 'run'} for #{app.commit} on #{app.branch}"
         puts begin_message
         Thread.current[:ci_status] = begin_message
 
@@ -95,39 +106,20 @@ class CI
         # Set up the 'run' entry in the database, and
         # let the app do the talking from there.
         #
-        run = app.create_run
+        if request && request.run
+          run = request.run
+        else
+          run = app.create_run
+        end
         run.current_output_field = 'spec_output'
 
         begin
           app.in_app_dir do
-            next unless app.run_setup_commands!(run)
-
-            Thread.current[:ci_status] = "Running tests"
-
-            run.specs_started
-            unless app.run_tests!(run)
-              Thread.current[:ci_status] = "Specs failed"
-              run.specs_failed
-              next
-            end
-
-            if run.branch == deploy_branch
-              run.current_output_field = 'deploy_output'
-
-              Thread.current[:ci_status] = "Deploying"
-
-              run.deploy_started
-              unless app.deploy!(run)
-                run.deploy_failed
-                Thread.current[:ci_status] = "Deploy failed"
-                next
-              end
-
-              Thread.current[:ci_status] = "Deployed"
-              run.deployed
+            if request
+              app.handle_request!(request, run, deploy_branch)
+              request.update_column :state, 'fulfilled' if request.state == 'in_progress'
             else
-              Thread.current[:ci_status] = "Specs passed"
-              run.specs_passed
+              app.run_tests_and_deploy!(run, deploy_branch)
             end
           end
 
@@ -152,10 +144,7 @@ class CI
       message = "Exception in CI loop! #{exception.message}"
       Thread.current[:ci_status] = message
       puts message
-      callback.call
       exit 1
     end
-
-    callback.call
   end
 end
