@@ -22,7 +22,7 @@ class RailsApp < App
         # of all failed specs.
         at_end = line.include?("Failed examples:")
 
-      elsif /^rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ Util.uncolor(line.strip)
+      elsif (failed_spec = parse_failed_spec_file(line))
         # The regex parsed the file name out of the "rspec <filename>" string
         failed_specs << failed_spec
       end
@@ -73,6 +73,22 @@ class RailsApp < App
     run.failures.empty?
   end
 
+  def handle_request!(request, run, deploy_branch)
+    case request.action
+    when 'retry'
+      if request.failure
+        retry_failure!(request, run, deploy_branch)
+      elsif request.run
+        retry_run!(request, run, deploy_branch)
+      else
+        raise "Got retry request with no target!"
+      end
+
+    else
+      raise "Rails app can't handle #{request.action} requests"
+    end
+  end
+
   def deploy_commands
     [
       %w(bundle exec cap production deploy)
@@ -80,6 +96,69 @@ class RailsApp < App
   end
 
   private
+
+  def retry_failure!(request, run, deploy_branch)
+    failure = request.failure
+
+    Git.checkout(failure.run.commit)
+
+    #
+    # Find the spec to run in the output
+    #
+    file = nil
+    puts "LOOKING FOR 'RSPEC:'"
+    failure.output.each_line do |line|
+      if (failed_spec = parse_failed_spec_file(line))
+        file = failed_spec
+      end
+    end
+    raise "Couldn't find spec file in failure output\n#{Util.uncolor(failure.output)}" if file.nil?
+
+    #
+    # Run the spec
+    #
+    run.retrying_specs
+    spec_output = []
+    error_output = []
+    run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
+    passed = run.record('bundle', 'exec', 'rspec', file) do |line, is_stderr|
+      if is_stderr
+        error_output << line
+      else
+        spec_output << line
+      end
+    end
+
+    #
+    # Update the failure's output, or destroy it
+    #
+    if passed
+      failure.destroy!
+      deploy_if_necessary!(run, deploy_branch) if run.reload.failures.empty?
+    else
+      if spec_output.empty?
+        joined_output = Util.color2html(error_output.join)
+      else
+        joined_output = Util.color2html(spec_output.join)
+      end
+      failure.update_column :output, "== RETRIED ==\n#{joined_output}\n"\
+                                     "--------------------------\n#{failure.output}"
+    end
+  end
+
+  def retry_run!(request, run, deploy_branch)
+    run.update_column :spec_output, "=== RETRY ===\n"
+    run.update_column :deploy_output, ''
+    run_tests_and_deploy!(run, deploy_branch)
+  end
+
+
+  def parse_failed_spec_file(line)
+    if /rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ Util.uncolor(line.strip)
+      failed_spec
+    end
+  end
+
 
   def send_failures_email(failed_spec_info, run_id, app_name)
     return if failed_spec_info.empty?

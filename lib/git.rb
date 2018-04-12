@@ -62,11 +62,12 @@ module Git
       "Switched to branch '#{branch}'",       # Checked out local branch
       "Switched to a new branch '#{branch}'", # Checked out new remote branch
       "Already on '#{branch}'",               # Checked out current branch
-      "Note: checking out '#{branch}'."       # Checked out commit (detached HEAD)
+      "Note: checking out '#{branch}'.",      # Checked out commit (detached HEAD)
+      "HEAD is now at #{branch.first(7)}..."  # Checked out current commit (detached HEAD)
     ]
 
-    unless expected_lines.any? { |l| lines.include?(l) }
-      raise "Failed to checkout #{branch.inspect} \n\n#{lines.join("\n")}"
+    unless expected_lines.any? { |e| lines.any? { |l| l.include?(e) } }
+      raise "Failed to checkout #{branch.inspect}\nExpected one of #{expected_lines}\n\n#{lines.join("\n")}"
     end
 
     branch

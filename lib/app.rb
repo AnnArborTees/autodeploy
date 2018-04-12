@@ -121,12 +121,21 @@ class App
     Thread.current[:ci_status] = "Running tests"
 
     run.specs_started
-    unless run_tests!(run)
+    if run_tests!(run)
+      deploy_if_necessary!(run, deploy_branch)
+    else
       Thread.current[:ci_status] = "Specs failed"
       run.specs_failed
-      return
     end
+  end
 
+  def in_app_dir(&block)
+    Dir.chdir(@directory, &block)
+  end
+
+  protected
+
+  def deploy_if_necessary!(run, deploy_branch)
     if run.branch == deploy_branch
       run.current_output_field = 'deploy_output'
 
@@ -146,12 +155,6 @@ class App
       run.specs_passed
     end
   end
-
-  def in_app_dir(&block)
-    Dir.chdir(@directory, &block)
-  end
-
-  protected
 
   def setup_commands
     raise "`setup_commands` unimplemented in #{self.class.name}"

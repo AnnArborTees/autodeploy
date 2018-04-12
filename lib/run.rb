@@ -82,6 +82,13 @@ class Run < ActiveRecord::Base
     )
   end
 
+  def retrying_specs
+    update_attributes!(
+      status: 'retrying_specs',
+      specs_started_at: Time.now
+    )
+  end
+
   def specs_failed
     update_attributes!(
       status: 'specs_failed',

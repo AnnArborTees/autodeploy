@@ -83,7 +83,11 @@ class CI
             end
           end
 
-          puts "New code found! Branch: #{app.branch}, HEAD is now #{app.commit}"
+          if request
+            puts "Got a request! Branch: #{app.branch}, HEAD is now #{app.commit}"
+          else
+            puts "New code found! Branch: #{app.branch}, HEAD is now #{app.commit}"
+          end
 
           #
           # See if we already have a run started for this commit
@@ -125,6 +129,7 @@ class CI
           Thread.current[:ci_status] = message
           run.errored(message) rescue nil
           STDERR.puts "#{message}\n\n#{error.backtrace.map { |b| "* #{b}" }.join("\n")}\n"
+          request.update_column :state, 'errored' if request
 
         rescue Exception => exception
           run.errored("#{exception.class}: #{exception.message}") rescue nil
