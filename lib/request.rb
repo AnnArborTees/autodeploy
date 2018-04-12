@@ -30,9 +30,19 @@ class Request < ActiveRecord::Base
     end
   end
 
-  def prepare_app!(app)
+  def failure
+    case target_record
+    when Run then nil
+    when Failure then target_record
+    end
+  end
+
+  def prepare_app!(app, branches)
     if run
       app.checkout! run.commit
+    else
+      app.checkout! branches.first
     end
+    update_column :state, 'in_progress'
   end
 end

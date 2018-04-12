@@ -23,6 +23,11 @@ class TestApp < App
     run.record('echo', "FROM STDERR: ", stderr_output)
   end
 
+  def handle_request!(request, run, deploy_branch)
+    run.record('echo', "======= GOT A REQUEST =======")
+    run.record('echo', request.inspect)
+  end
+
   def deploy_commands
     if ENV['TEST_DEPLOY_FAIL'] == 'true'
       [

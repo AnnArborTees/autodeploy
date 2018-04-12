@@ -50,10 +50,12 @@ class CI
     branches = options[:branches] || @arguments.branches
     deploy_branch = options[:deploy_branch] || @arguments.deploy_branch
 
-    @thread = Thread.new { LOOP[@app, force, run_once, branches, deploy_branch] }
+    @thread = Thread.new { ci_loop(@app, force, run_once, branches, deploy_branch) }
   end
 
-  LOOP = lambda do |app, force, run_once, branches, deploy_branch|
+  private
+
+  def ci_loop(app, force, run_once, branches, deploy_branch)
     begin
       loop do
         request = nil
@@ -76,7 +78,7 @@ class CI
 
             if (pending_request = Request.pending.where(app: app.name).first)
               request = pending_request
-              request.update_column :state, 'in_progress'
+              request.prepare_app!(app, branches)
               break
             end
           end
@@ -92,11 +94,6 @@ class CI
             next
           end
         end
-
-        #
-        # Set up the app's branch and commit for a request if necessary
-        #
-        request.prepare_app!(app) if request
 
         begin_message = "Beginning #{request ? 'request' : 'run'} for #{app.commit} on #{app.branch}"
         puts begin_message

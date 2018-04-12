@@ -41,6 +41,20 @@ index 0595763..b41d4cb 100644
 }
   end
 
+  def git_status
+    StringIO.new %{On branch master
+Your branch is up-to-date with 'origin/master'.
+
+nothing to commit, working tree clean
+}
+  end
+
+  def git_status_detached
+    StringIO.new %{HEAD detached at 3bfcd53
+nothing to commit, working tree clean
+}
+  end
+
   def git_log_n1
     StringIO.new %{commit 0b81eca6b43ebcfab3834bb2b7b617dd1c274030
 Author: NinjaButtersAATC <stefan@annarbortees.com>
@@ -67,6 +81,22 @@ Date:   Mon Feb 26 16:27:03 2018 -0500
   def git_checkout
     StringIO.new %{Switched to a new branch 'story-2222-stefan'
 Branch story-2222-stefan set up to track remote branch story-2222-stefan from origin.
+}
+  end
+
+  def git_checkout_commit
+    StringIO.new %{Note: checking out '3bfcd53e18606c6b933ed94221428b4206039431'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by performing another checkout.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -b with the checkout command again. Example:
+
+  git checkout -b <new-branch-name>
+
+HEAD is now at 3bfcd53... update production ip
 }
   end
 
