@@ -18,6 +18,10 @@ RSpec.describe Git do
     allow(Open3).to receive(:popen2e)
       .with('git', 'checkout', 'story-2222-stefan')
       .and_return [StringIO.new, OutputStub.git_checkout, nil]
+
+    allow(Open3).to receive(:popen2e)
+      .with('git', 'checkout', '3bfcd53e18606c6b933ed94221428b4206039431')
+      .and_return [StringIO.new, OutputStub.git_checkout_commit, nil]
   end
 
   describe '#commit_hash' do
@@ -50,9 +54,39 @@ RSpec.describe Git do
     end
   end
 
+  describe '#branch' do
+    context 'when HEAD is on a normal branch' do
+      before do
+        allow(Open3).to receive(:popen2)
+          .with('git', 'status')
+          .and_return [StringIO.new, OutputStub.git_status, nil]
+      end
+
+      it "returns the current branch" do
+        expect(Git.branch).to eq 'master'
+      end
+    end
+
+    context 'when HEAD is detached' do
+      before do
+        allow(Open3).to receive(:popen2)
+          .with('git', 'status')
+          .and_return [StringIO.new, OutputStub.git_status_detached, nil]
+      end
+
+      it "returns the current commit" do
+        expect(Git.branch).to eq 'cabc994a5cf74f85f86b33a3149a8cf48464aadc'
+      end
+    end
+  end
+
   describe '#checkout' do
     it "checks out the given branch" do
       expect(Git.checkout('story-2222-stefan')).to be_truthy
+    end
+
+    it "can checkout a specific commit" do
+      expect(Git.checkout('3bfcd53e18606c6b933ed94221428b4206039431')).to be_truthy
     end
   end
 end

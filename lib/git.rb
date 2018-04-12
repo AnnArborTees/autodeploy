@@ -16,13 +16,16 @@ module Git
     while line = stdout.gets
       if /On branch (?<branch_name>[\w\-]+)/ =~ line
         return branch_name
+
+      elsif /HEAD detached at/ =~ line
+        return commit_hash
       end
     end
     raise "Failed to find current branch"
 
   ensure
-    stdin.close
-    stdout.close
+    stdin.close if stdin
+    stdout.close if stdin
   end
 
   def branches
@@ -56,9 +59,10 @@ module Git
     end
 
     expected_lines = [
-      "Switched to branch '#{branch}'",
-      "Switched to a new branch '#{branch}'",
-      "Already on '#{branch}'"
+      "Switched to branch '#{branch}'",       # Checked out local branch
+      "Switched to a new branch '#{branch}'", # Checked out new remote branch
+      "Already on '#{branch}'",               # Checked out current branch
+      "Note: checking out '#{branch}'."       # Checked out commit (detached HEAD)
     ]
 
     unless expected_lines.any? { |l| lines.include?(l) }
