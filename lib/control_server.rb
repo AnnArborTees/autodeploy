@@ -1,5 +1,14 @@
 require 'sinatra/base'
 
+# This is a sinatra server that lets you query the current
+# status of execution and cancel the current operation.
+#
+# In the future, this could be upgraded to stream spec output
+# to the browser in real-time.
+#
+# As of the time of writing, the aatci web interface does not
+# utilize this ControlServer in any way, so it's not used.
+
 class ControlServer
   WEBSERVER = lambda do |ci, port|
     set :port, port
@@ -16,13 +25,6 @@ class ControlServer
     post '/cancel' do
       ci.create_thread!
       "Stopped currently running process"
-    end
-
-    # Restarts the CI thread, forcing execution on a particular branch
-    # or commit.
-    post '/run/branch/:branch' do
-      ci.create_thread!(branches: [params['branch']])
-      "Running branch #{params['branch']}"
     end
   end
 
