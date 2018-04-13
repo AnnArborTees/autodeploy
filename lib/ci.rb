@@ -133,6 +133,7 @@ class CI
 
         rescue Exception => exception
           run.errored("#{exception.class}: #{exception.message}") rescue nil
+          request.update_column :state, 'errored' rescue nil
           raise
         end
 
