@@ -66,13 +66,3 @@ Where `type_of_app` is either `rails` or `test` (hard-coded before the loop in l
 Via ubuntu GUI, configure Startup Scripts to run. The startup script is just a script that has the configuration needed to run our apps, i.e. code to execute the "Runnnig detached" for CRM, then for Retail, then for Production etc.
 
 TODO: Why does one CI server run on startup successfuly and the other doesn't?
-
-## VPN notes
-
-Not directly related to this system, but ...
-
-``` bash
-sudo apt-get install network-manager-openvpn network-manager-openvpn-gnome networkmanager-pptp network-manager-vpnc
-```
-
-Then network manager should be able to import .ovpn files.
