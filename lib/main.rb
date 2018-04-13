@@ -1,4 +1,3 @@
-require_relative 'control_server'
 require_relative 'ci'
 
 require 'byebug'
@@ -10,6 +9,7 @@ ci = CI.new(ARGV)
 ci.create_thread!
 
 if ci.arguments.control_server
+  require_relative 'control_server'
   ControlServer.new(ci, ci.app.unique_port).run!
   ci.thread.kill if ci.thread
 else
