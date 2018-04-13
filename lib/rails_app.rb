@@ -39,6 +39,8 @@ class RailsApp < App
       failed_spec_info = []
       spec_output = []
 
+      run.failures.destroy_all
+
       failed_specs.each do |file|
         spec_output.clear
 
