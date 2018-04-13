@@ -136,8 +136,11 @@ class RailsApp < App
     #
     if passed
       failure.destroy!
+      run.specs_passed
       deploy_if_necessary!(run, deploy_branch) if run.reload.failures.empty?
     else
+      run.specs_failed
+
       if spec_output.empty?
         joined_output = Util.color2html(error_output.join)
       else
