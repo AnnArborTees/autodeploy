@@ -77,11 +77,11 @@ module Git
     stdout.close
   end
 
-  def commit_hash
+  def commit_hash(branch = 'HEAD')
     # The first line of `git show HEAD` is "commit abc123".
     # So, we split off the "commit" part and return the rest.
     #
-    stdin, stdout, _process = Open3.popen2('git', 'show', 'HEAD')
+    stdin, stdout, _process = Open3.popen2('git', 'show', branch)
     stdout.gets.split(/\s+/, 2).last.strip
 
   ensure

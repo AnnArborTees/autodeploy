@@ -136,7 +136,8 @@ class App
   protected
 
   def deploy_if_necessary!(run, deploy_branch)
-    if run.branch == deploy_branch
+    Git.fetch
+    if run.commit == Git.commit_hash("origin/#{deploy_branch}")
       run.current_output_field = 'deploy_output'
 
       Thread.current[:ci_status] = "Deploying"
