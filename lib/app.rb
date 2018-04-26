@@ -53,12 +53,12 @@ class App
       Git.fetch
 
       branch_index = ((branches.index(Git.branch) || -1) + 1) % branches.size
+      Git.reset_hard!
       Git.checkout branches[branch_index]
 
       # Reset then Pull (the reset is because sometimes files get left over)
       # TODO perhaps we should add+stash instead of reset --hard!
       old_commit = Git.commit_hash
-      Git.reset_hard!
       Git.pull!
       new_commit = Git.commit_hash
 
