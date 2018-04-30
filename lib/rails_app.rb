@@ -16,7 +16,7 @@ class RailsApp < App
     #
     # First, run rspec on everything
     #
-    rspec_succeeded = run.record('bundle', 'exec', 'rspec', '--tag', '~paypal_sandbox') do |line|
+    rspec_succeeded = run.record('bundle', 'exec', 'rspec', '--tag', '~paypal_sandbox', '--profile') do |line|
       if !at_end
         # Once we see "Failed examples:", we can start gathering a list
         # of all failed specs.
