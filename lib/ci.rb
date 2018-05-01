@@ -78,7 +78,15 @@ class CI
 
             if (pending_request = Request.pending.where(app: app.name).first)
               request = pending_request
-              request.prepare_app!(app, branches)
+
+              begin
+                request.prepare_app!(app, branches)
+              rescue => error
+                request.update_column :state, 'errored'
+                puts "Request errored. #{error.class} #{error.message}"
+                next
+              end
+
               break
             end
           end
