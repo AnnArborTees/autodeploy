@@ -147,6 +147,7 @@ class CI
       message = "Exception in CI loop! #{exception.message}"
       Thread.current[:ci_status] = message
       puts message
+      puts exception.backtrace
       exit 1
     end
   end
