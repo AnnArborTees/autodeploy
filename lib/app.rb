@@ -137,7 +137,8 @@ class App
 
   def deploy_if_necessary!(run, deploy_branch)
     Git.fetch
-    if run.commit == Git.commit_hash("origin/#{deploy_branch}")
+    master_commit = Git.commit_hash("origin/#{deploy_branch}")
+    if run.commit == master_commit
       run.current_output_field = 'deploy_output'
 
       Thread.current[:ci_status] = "Deploying"
@@ -153,6 +154,9 @@ class App
       run.deployed
     else
       Thread.current[:ci_status] = "Specs passed"
+      run.deploy_output ||= ""
+      run.deploy_output += "\nDeploy not attempted because specs were run on #{run.commit}, "\
+        "but origin/#{deploy_branch} is on #{master_commit}."
       run.specs_passed
     end
   end
