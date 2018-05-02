@@ -102,8 +102,11 @@ class CI
           # (unless we're processing a request)
           #
           if !request && !run_once && Run.exists?(commit: app.commit)
-            puts "Run already exists for #{app.commit}"
-            next
+            # We don't skip the commit on master
+            unless app.branch == deploy_branch
+              puts "Run already exists for #{app.commit}"
+              next
+            end
           end
         end
 
