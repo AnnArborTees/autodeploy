@@ -74,7 +74,7 @@ class CI
           Thread.current[:ci_status] = "Pulling for #{branches.join(', ')}"
 
           loop do
-            break if app.try_pulling!(branches)
+            break if app.try_pulling!(branches, deploy_branch)
 
             if (pending_request = Request.pending.where(app: app.name).first)
               request = pending_request

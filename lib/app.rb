@@ -48,18 +48,29 @@ class App
     end
   end
 
-  def try_pulling!(branches)
+  def try_pulling!(branches, deploy_branch)
     in_app_dir do
       Git.fetch
 
       # Check out the next branch
       branch_index = ((branches.index(Git.branch) || -1) + 1) % branches.size
       Git.reset_hard!
-      Git.checkout branches[branch_index]
 
-      old_commit = Git.commit_hash
-      Git.pull!
-      new_commit = Git.commit_hash
+      if branches[branch_index] == deploy_branch
+        # When pulling master, just reset then checkout
+        Git.checkout branches[branch_index]
+
+        old_commit = Git.commit_hash
+        Git.pull!
+        new_commit = Git.commit_hash
+      else
+        # When pulling non-master, destroy local branch then re-checkout
+        old_commit = Git.commit_hash(branches[branch_index])
+        Git.delete_branch(branches[branch_index])
+
+        Git.checkout branches[branch_index]
+        new_commit = Git.commit_hash
+      end
 
       if new_commit != old_commit
         # FOUND NEW COMMIT!

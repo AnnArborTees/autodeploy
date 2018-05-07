@@ -77,6 +77,10 @@ module Git
     stdout.close
   end
 
+  def delete_branch(branch)
+    system("git branch -D '#{branch}'")
+  end
+
   def commit_hash(branch = 'HEAD')
     # The first line of `git show HEAD` is "commit abc123".
     # So, we split off the "commit" part and return the rest.
