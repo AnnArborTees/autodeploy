@@ -5,7 +5,7 @@ class RailsApp < App
   def setup_commands
     [
       %w(bundle install),
-      %w(bundle exec rake db:drop db:create db:migrate)
+      %w(bundle exec rake db:drop db:create db:migrate RAILS_ENV=test)
     ]
   end
 
