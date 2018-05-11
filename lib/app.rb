@@ -54,32 +54,42 @@ class App
 
       # Check out the next branch
       branch_index = ((branches.index(Git.branch) || -1) + 1) % branches.size
-      Git.reset_hard!
 
-      if branches[branch_index] == deploy_branch
-        # When pulling master, just reset then checkout
-        Git.checkout branches[branch_index]
+      loop do
+        Git.reset_hard!
 
-        old_commit = Git.commit_hash
-        Git.pull!
-        new_commit = Git.commit_hash
-      else
-        # When pulling non-master, destroy local branch then re-checkout
-        old_commit = Git.commit_hash(branches[branch_index])
-        Git.delete_branch(branches[branch_index])
+        if branches[branch_index] == deploy_branch
+          # When master, just checkout and try pulling
+          Git.checkout branches[branch_index]
 
-        Git.checkout branches[branch_index]
-        new_commit = Git.commit_hash
-      end
+          old_commit = Git.commit_hash
+          Git.pull!
+          new_commit = Git.commit_hash
+        else
+          # When non-master, destroy local branch then re-checkout
+          old_commit = Git.commit_hash(branches[branch_index])
+          Git.delete_branch(branches[branch_index])
 
-      if new_commit != old_commit
-        # FOUND NEW COMMIT!
-        @branch = branches[branch_index]
-        @commit = new_commit
-        true
-      else
-        false
-      end
+          begin
+            Git.checkout branches[branch_index]
+          rescue => e
+            # Skip this branch if it doesn't exist
+            puts e.message
+            branch_index += 1
+            next
+          end
+          new_commit = Git.commit_hash
+        end
+
+        if new_commit != old_commit
+          # FOUND NEW COMMIT!
+          @branch = branches[branch_index]
+          @commit = new_commit
+          return true
+        end
+
+        return false
+      end#loop
     end
   end
 
