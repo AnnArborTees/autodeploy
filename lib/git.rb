@@ -136,8 +136,11 @@ module Git
     Process.wait pid
   end
 
-  def reset_hard!
-    pid = Process.spawn("git", "reset", "--hard")
+  def reset_hard!(reset_to = nil)
+    args = ["git", "reset", "--hard"]
+    args << reset_to if reset_to
+
+    pid = Process.spawn(*args)
     Process.wait pid
   end
 

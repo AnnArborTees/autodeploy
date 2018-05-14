@@ -38,19 +38,22 @@ class CI
     end
   end
 
-  def create_thread!(options = {})
+  def start_thread!(options = {})
     if @thread && @thread.alive? && @thread != Thread.current
       @thread.kill
       sleep 0.1
     end
 
-    # Local variables for the thread
+    @thread = Thread.new { start!(options) }
+  end
+
+  def start!(options = {})
     force = !options.empty? || @arguments.force
     run_once = force || @arguments.run_once
     branches = options[:branches] || @arguments.branches
     deploy_branch = options[:deploy_branch] || @arguments.deploy_branch
 
-    @thread = Thread.new { ci_loop(@app, force, run_once, branches, deploy_branch) }
+    ci_loop(@app, force, run_once, branches, deploy_branch)
   end
 
   private

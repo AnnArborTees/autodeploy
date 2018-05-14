@@ -50,47 +50,37 @@ class App
 
   def try_pulling!(branches, deploy_branch)
     in_app_dir do
-      Git.fetch
-
       # Check out the next branch
       branch_index = ((branches.index(Git.branch) || -1) + 1) % branches.size
 
       loop do
         Git.reset_hard!
+        Git.fetch
 
-        if branches[branch_index] == deploy_branch
-          # When master, just checkout and try pulling
+        # Checkout and force-sync with origin
+        begin
           Git.checkout branches[branch_index]
-
           old_commit = Git.commit_hash
-          Git.pull!
+          Git.reset_hard! "origin/#{branches[branch_index]}"
           new_commit = Git.commit_hash
-        else
-          # When non-master, destroy local branch then re-checkout
-          old_commit = Git.commit_hash(branches[branch_index])
-          Git.delete_branch(branches[branch_index])
 
-          begin
-            Git.checkout branches[branch_index]
-          rescue => e
-            # Skip this branch if it doesn't exist
-            puts e.message
-            branch_index += 1
-            next
+          if new_commit != old_commit
+            # FOUND NEW COMMIT!
+            @branch = branches[branch_index]
+            @commit = new_commit
+            return true
           end
-          new_commit = Git.commit_hash
-        end
-
-        if new_commit != old_commit
-          # FOUND NEW COMMIT!
-          @branch = branches[branch_index]
-          @commit = new_commit
-          return true
+        rescue => e
+          # Skip this branch if it doesn't exist
+          # (assuming an error means it doesn't exist)
+          puts e.message
+          branch_index += 1
+          next
         end
 
         return false
       end#loop
-    end
+    end#in_app_dir
   end
 
   def run_setup_commands!(run)
