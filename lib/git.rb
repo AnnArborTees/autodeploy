@@ -85,16 +85,8 @@ module Git
     # The first line of `git show HEAD` is "commit abc123".
     # So, we split off the "commit" part and return the rest.
     #
-    stdin, stdout, process = Open3.popen2('git', 'show', branch)
-    if process.value.success?
-      stdout.gets.split(/\s+/, 2).last.strip
-    else
-      ''
-    end
-
-  ensure
-    stdin.close
-    stdout.close
+    output = `git show '#{branch}'`
+    output.each_line.first.split(/\s+/, 2).last.strip
   end
 
   def commit_author
