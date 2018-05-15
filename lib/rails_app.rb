@@ -72,7 +72,7 @@ class RailsApp < App
     #
     # If we reported no failures, we're golden!
     #
-    run.failures.empty?
+    run.failures.empty? && !run.errored?
   end
 
   def handle_request!(request, run, deploy_branch)
