@@ -4,6 +4,7 @@ class ParallelRailsApp < RailsApp
   def setup_commands
     [
       %w(bundle install),
+      %w(bundle exec rake db:migrate RAILS_ENV=test),
       %w(bundle exec rake parallel:setup)
     ]
   end

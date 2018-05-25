@@ -1,4 +1,5 @@
 require_relative 'rails_app'
+require_relative 'parallel_rails_app'
 require_relative 'test_app'
 require_relative 'shopify_app'
 require_relative 'args'
