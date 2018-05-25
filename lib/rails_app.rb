@@ -68,36 +68,40 @@ class RailsApp < App
 
   protected
 
-  def retry_failed_specs!(run, failed_specs)
+  def retry_failed_specs!(run, failed_specs, threads = 1)
     failed_spec_info = []
     spec_output = []
 
     run.failures.destroy_all
 
     # TODO we could possibly split this list across two threads?
-    failed_specs.each do |file|
-      spec_output.clear
+    threads = failed_specs.map do |file|
+      Thread.new do
+        spec_output.clear
 
-      run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
-      passed = run.record('bundle', 'exec', 'rspec', file) do |line, is_stderr|
-        spec_output << line unless is_stderr
-      end
+        run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
+        passed = run.record('bundle', 'exec', 'rspec', file) do |line, is_stderr|
+          spec_output << line unless is_stderr
+        end
 
-      unless passed
-        joined_output = Util.color2html(spec_output.join)
+        unless passed
+          joined_output = Util.color2html(spec_output.join)
 
-        run.failures.create!(output: joined_output)
+          run.failures.create!(output: joined_output)
 
-        # NOTE failed_spec_info is for the failure email
-        failed_spec_info << {
-          file: file,
-          output: joined_output
-          .gsub("\n", "<br />")
-          .gsub('   ', ' &nbsp;&nbsp;')
-          .gsub('  ', ' &nbsp;')
-        }
+          # NOTE failed_spec_info is for the failure email
+          failed_spec_info << {
+            file: file,
+            output: joined_output
+            .gsub("\n", "<br />")
+            .gsub('   ', ' &nbsp;&nbsp;')
+            .gsub('  ', ' &nbsp;')
+          }
+        end
       end
     end
+
+    threads.each(&:join)
 
     # Send failures email
     send_failures_email(failed_spec_info, run.id, name)
