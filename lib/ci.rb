@@ -13,9 +13,10 @@ class CI
     @arguments = parse_command_line_arguments(argv)
 
     case @arguments.app_type
-    when 'rails' then @app = RailsApp.new(@arguments.app_dir)
-    when 'test' then @app = TestApp.new(@arguments.app_dir)
-    when 'shopify' then @app = ShopifyApp.new(@arguments.app_dir)
+    when 'rails'          then @app = RailsApp.new(@arguments.app_dir)
+    when 'rails_parallel' then @app = ParallelRailsApp.new(@arguments.app_dir)
+    when 'test'           then @app = TestApp.new(@arguments.app_dir)
+    when 'shopify'        then @app = ShopifyApp.new(@arguments.app_dir)
     else raise "Error: unknown app type #{@arguments.app_type.inspect}"
     end
 
