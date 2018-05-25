@@ -131,7 +131,7 @@ class Run < ActiveRecord::Base
     message = Util.color2html(message)
     message = Util.wrap_with_error_span(message)
 
-    send_to_output_raw(message, current_output_field || 'spec_output', client) { |m| client.quote_string(m) }
+    send_to_output_raw(message, current_output_field || 'spec_output', client) { |m| "'#{client.quote_string(m)}'" }
     update_column :status, 'error'
   end
 
@@ -185,7 +185,7 @@ class Run < ActiveRecord::Base
         retries = 10
         begin
           Run.connection_pool.with_connection do |client|
-            send_to_output_raw(total_output, output_field, client) { |m| client.quote_string(m) }
+            send_to_output_raw(total_output, output_field, client) { |m| "'#{client.quote_string(m)}'" }
           end
 
         rescue Mysql2::Error => e
