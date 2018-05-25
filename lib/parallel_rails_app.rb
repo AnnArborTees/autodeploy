@@ -4,6 +4,7 @@ class ParallelRailsApp < RailsApp
   def setup_commands
     [
       %w(bundle install),
+      %w(bundle exec rake parallel:create[8]),
       %w(bundle exec rake db:migrate),
       %w(bundle exec rake parallel:prepare[8])
     ]
