@@ -130,9 +130,8 @@ class Run < ActiveRecord::Base
 
     message = Util.color2html(message)
     message = Util.wrap_with_error_span(message)
-    message = "'#{client.quote_string(message)}'"
 
-    send_to_output_raw(message, current_output_field || 'spec_output', client)
+    send_to_output_raw(message, current_output_field || 'spec_output', client) { |m| client.quote_string(m) }
     update_column :status, 'error'
   end
 
@@ -140,15 +139,19 @@ class Run < ActiveRecord::Base
     client ||= Run.connection
     output_field ||= current_output_field
 
-    send_to_output_raw(sanitize(message, client), output_field, client)
+    send_to_output_raw(message, output_field, client) { |m| sanitize(m, client) }
   end
 
   def send_to_output_raw(message, output_field, client)
-    client.execute(
-      "UPDATE runs SET #{output_field} = " \
-      "CONCAT(#{output_field}, #{message}) " \
-      "WHERE id = #{id}"
-    )
+    message.chars.each_slice(10000).each do |slice|
+      client.execute(
+        "UPDATE runs SET #{output_field} = " \
+        "CONCAT(#{output_field}, #{yield(slice.join)}) " \
+        "WHERE id = #{id}"
+      )
+    end
+
+    nil
   end
 
   private
@@ -182,7 +185,7 @@ class Run < ActiveRecord::Base
         retries = 10
         begin
           Run.connection_pool.with_connection do |client|
-            send_to_output_raw("'#{client.quote_string(total_output)}'", output_field, client)
+            send_to_output_raw(total_output, output_field, client) { |m| client.quote_string(m) }
           end
 
         rescue Mysql2::Error => e
