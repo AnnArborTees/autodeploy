@@ -74,7 +74,7 @@ class RailsApp < App
 
     run.failures.destroy_all
 
-    failed_spec.each_slice(thread_count).map do |failed_spec_set|
+    failed_specs.each_slice(thread_count).map do |failed_spec_set|
       Thread.new do
         failed_spec_set.each do |file|
           spec_output.clear
