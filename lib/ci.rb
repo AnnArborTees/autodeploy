@@ -10,15 +10,18 @@ class CI
   attr_reader :app
   attr_reader :thread
 
+  class Error < StandardError
+  end
+
   def initialize(argv)
     @arguments = parse_command_line_arguments(argv)
 
     case @arguments.app_type
-    when 'rails'          then @app = RailsApp.new(@arguments.app_dir)
-    when 'rails_parallel' then @app = ParallelRailsApp.new(@arguments.app_dir)
-    when 'test'           then @app = TestApp.new(@arguments.app_dir)
-    when 'shopify'        then @app = ShopifyApp.new(@arguments.app_dir)
-    else raise "Error: unknown app type #{@arguments.app_type.inspect}"
+    when 'rails'          then @app = RailsApp.new(@arguments)
+    when 'rails_parallel' then @app = ParallelRailsApp.new(@arguments)
+    when 'test'           then @app = TestApp.new(@arguments)
+    when 'shopify'        then @app = ShopifyApp.new(@arguments)
+    else raise Error, "unknown app type #{@arguments.app_type.inspect}"
     end
 
     if @arguments.debug

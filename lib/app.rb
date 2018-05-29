@@ -14,9 +14,9 @@ class App
   attr_reader :commit
   attr_reader :branch
 
-  def initialize(directory)
-    @directory = directory
-    @name = File.basename(@directory)
+  def initialize(args)
+    @directory = args.app_dir
+    @name = args.app_name
   end
 
   def checkout!(branch)

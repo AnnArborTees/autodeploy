@@ -1,6 +1,6 @@
 require 'optparse'
 
-Options = Struct.new(:app_dir, :app_type, :force, :run_once, :debug, :branches, :deploy_branch, :control_server)
+Options = Struct.new(:app_dir, :app_name, :app_type, :force, :run_once, :debug, :branches, :deploy_branch, :control_server)
 
 def parse_command_line_arguments(argv)
   result = Options.new
@@ -39,6 +39,10 @@ def parse_command_line_arguments(argv)
       result.control_server = true
     end
 
+    opts.on '-nNAME', "--name NAME", "Use NAME as app name instead of project directory" do |n|
+      result.app_name = n
+    end
+
     opts.on '-h', "--help", "Print this message" do
       puts opts
       exit 0
@@ -54,6 +58,10 @@ def parse_command_line_arguments(argv)
     puts "Please specify app type and directory"
     puts opts
     exit 1
+  end
+
+  if result.app_name.nil? || result.app_name.empty?
+    result.app_name = File.basename(result.app_dir)
   end
 
   if result.branches.empty?
