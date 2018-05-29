@@ -81,7 +81,7 @@ class RailsApp < App
             spec_output.clear
 
             run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
-            passed = run.record('bundle', 'exec', 'rspec', file) do |line, is_stderr|
+            passed = run.record('bundle', 'exec', 'rspec', file, '--format=documentation') do |line, is_stderr|
               spec_output << line unless is_stderr
             end
 
@@ -136,7 +136,7 @@ class RailsApp < App
     spec_output = []
     error_output = []
     run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
-    passed = run.record('bundle', 'exec', 'rspec', file) do |line, is_stderr|
+    passed = run.record('bundle', 'exec', 'rspec', file, '--format=documentation') do |line, is_stderr|
       if is_stderr
         error_output << line
       else
