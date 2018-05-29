@@ -44,15 +44,22 @@ module Util
     input = CGI::escapeHTML(input)
     ansi = StringScanner.new(input)
     html = StringIO.new
+    end_tags = []
+
     until ansi.eos?
       if ansi.scan(/\e\[0?m/)
-        html.print(%{</span>})
+        html.print end_tags.join
+        end_tags.clear
       elsif ansi.scan(/\e\[0?1?;?(\d+)(;49)?m/)
         html.print(%{<span class="#{AnsiColor[ansi[1]]}">})
+        end_tags.push "</span>"
       else
         html.print(ansi.scan(/./m))
       end
     end
+
+    html.print end_tags.join
+    end_tags.clear
 
     html.string
   end

@@ -21,7 +21,7 @@ class Run < ActiveRecord::Base
     status == 'error'
   end
 
-  def record_process(*cmdline, &block)
+  def record(*cmdline, &block)
     output_field = current_output_field
     if output_field.nil?
       raise "Set run.current_output_field = 'spec_output' or something before record_process"
@@ -73,7 +73,7 @@ class Run < ActiveRecord::Base
       process.value.success?
     end
   end
-  alias record record_process
+  alias record_process record
 
   def specs_started
     update_attributes!(
