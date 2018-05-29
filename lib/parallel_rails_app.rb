@@ -35,7 +35,7 @@ class ParallelRailsApp < RailsApp
     if !rspec_succeeded && failed_specs.empty?
       run.errored("RSpec failed, but couldn't parse out which ones!")
     elsif !rspec_succeeded
-      retry_failed_specs!(run, failed_specs, 4)
+      retry_failed_specs!(run, failed_specs)
     end
 
     #

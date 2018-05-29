@@ -68,43 +68,35 @@ class RailsApp < App
 
   protected
 
-  def retry_failed_specs!(run, failed_specs, thread_count = 4)
+  def retry_failed_specs!(run, failed_specs)
     failed_spec_info = []
     spec_output = []
 
     run.failures.destroy_all
 
-    threads = failed_specs.shuffle.each_slice(thread_count).map do |failed_spec_set|
-      Thread.new do
-        in_app_dir do
-          failed_spec_set.each do |file|
-            spec_output.clear
+    failed_specs.shuffle.each do |file|
+      spec_output.clear
 
-            run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
-            passed = run.record('bundle', 'exec', 'rspec', file, '--format=documentation') do |line, is_stderr|
-              spec_output << line unless is_stderr
-            end
+      run.send_to_output "===== Retrying failed spec: #{file} =====\n\n"
+      passed = run.record('bundle', 'exec', 'rspec', file, '--format=documentation') do |line, is_stderr|
+        spec_output << line unless is_stderr
+      end
 
-            unless passed
-              joined_output = Util.color2html(spec_output.join)
+      unless passed
+        joined_output = Util.color2html(spec_output.join)
 
-              run.failures.create!(output: joined_output)
+        run.failures.create!(output: joined_output)
 
-              # NOTE failed_spec_info is for the failure email
-              failed_spec_info << {
-                file: file,
-                output: joined_output
-                .gsub("\n", "<br />")
-                .gsub('   ', ' &nbsp;&nbsp;')
-                .gsub('  ', ' &nbsp;')
-              }
-            end
-          end
-        end
+        # NOTE failed_spec_info is for the failure email
+        failed_spec_info << {
+          file: file,
+          output: joined_output
+          .gsub("\n", "<br />")
+          .gsub('   ', ' &nbsp;&nbsp;')
+          .gsub('  ', ' &nbsp;')
+        }
       end
     end
-
-    threads.each(&:join)
 
     # Send failures email
     send_failures_email(failed_spec_info, run.id, name)
