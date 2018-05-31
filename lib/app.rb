@@ -5,10 +5,6 @@ require_relative 'util'
 require 'digest'
 
 class App
-  # We select a random delay time to decrease the chances of
-  # both CI machines pulling the same commit.
-  DELAY_BETWEEN_PULLS = (5.0...15.0)
-
   attr_reader :directory
   attr_reader :name
   attr_reader :commit

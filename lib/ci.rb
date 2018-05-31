@@ -6,6 +6,10 @@ require_relative 'args'
 require_relative 'request'
 
 class CI
+  # We select a random delay time to decrease the chances of
+  # both CI machines pulling the same commit.
+  DELAY_BETWEEN_PULLS = (1.0...10.0)
+
   attr_reader :arguments
   attr_reader :app
   attr_reader :thread
@@ -97,6 +101,8 @@ class CI
 
               break
             end
+
+            sleep rand DELAY_BETWEEN_PULLS
           end
 
           if request
