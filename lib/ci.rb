@@ -104,23 +104,26 @@ class CI
           else
             puts "New code found! Branch: #{app.branch}, HEAD is now #{app.commit}"
           end
-
-          #
-          # See if we already have a run started for this commit
-          # (unless we're processing a request)
-          #
-          if !request && !run_once && Run.exists?(commit: app.commit)
-            # We don't skip the commit on master
-            unless app.branch == deploy_branch
-              puts "Run already exists for #{app.commit}"
-              next
-            end
-          end
         end
 
         begin_message = "Beginning #{request ? 'request' : 'run'} for #{app.commit} on #{app.branch}"
         puts begin_message
         Thread.current[:ci_status] = begin_message
+
+        #
+        # See if we already have a run started for this commit
+        # (unless we're processing a request)
+        #
+        if !force && !request && !run_once && Run.exists?(commit: app.commit)
+          # On master, we might want to just deploy upon receiving an already-run commit
+          if app.branch == deploy_branch
+            just_deploy = Run.exists?(commit: app.commit, status: 'specs_passed') &&
+                          !Run.exists?(commit: app.commit, branch: deploy_branch)
+          else
+            puts "Run already exists for #{app.commit}"
+            next
+          end
+        end
 
         #
         # Set up the 'run' entry in the database, and
@@ -138,6 +141,8 @@ class CI
             if request
               app.handle_request!(request, run, deploy_branch)
               request.update_column :state, 'fulfilled' if request.state == 'in_progress'
+            elsif just_deploy
+              app.deploy_if_necessary!(run, deploy_branch)
             else
               app.run_tests_and_deploy!(run, deploy_branch)
             end

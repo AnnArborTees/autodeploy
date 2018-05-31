@@ -143,8 +143,6 @@ class App
     Dir.chdir(@directory, &block)
   end
 
-  protected
-
   def deploy_if_necessary!(run, deploy_branch)
     Git.fetch
     master_commit = Git.commit_hash("origin/#{deploy_branch}")
@@ -170,6 +168,8 @@ class App
       run.specs_passed
     end
   end
+
+  protected
 
   def setup_commands
     raise "`setup_commands` unimplemented in #{self.class.name}"
