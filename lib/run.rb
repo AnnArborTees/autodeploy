@@ -13,6 +13,27 @@ class Run < ActiveRecord::Base
 
   attr_accessor :current_output_field
 
+  def author_email
+    # Nigel Baillie <metreckk@gmail.com>
+    if /\<(?<email_address>[^\<\>]+)\>/ =~ author
+      email_address
+    else
+      "devteam@annarbortees.com"
+    end
+  end
+
+  def author_name
+    if /^(?<name>.+)\<[^\<\>]+\>$/ =~ author
+      name
+    else
+      author
+    end
+  end
+
+  def link
+    "http://10.0.1.111/build.php?build_id=#{id}&app_name=#{app}"
+  end
+
   def ok?
     !status.include?('failed') && !status.include?('error')
   end

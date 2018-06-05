@@ -83,23 +83,25 @@ class RailsApp < App
       end
 
       unless passed
-        joined_output = Util.color2html(spec_output.join)
+        html_output = Util.color2html(spec_output.join)
+        raw_output = Util.uncolor(spec_output.join)
 
-        run.failures.create!(output: joined_output)
+        run.failures.create!(output: html_output)
 
         # NOTE failed_spec_info is for the failure email
         failed_spec_info << {
           file: file,
-          output: joined_output
-          .gsub("\n", "<br />")
-          .gsub('   ', ' &nbsp;&nbsp;')
-          .gsub('  ', ' &nbsp;')
+          raw_output: raw_output,
+          output: html_output
+                    .gsub("\n", "<br />")
+                    .gsub('   ', ' &nbsp;&nbsp;')
+                    .gsub('  ', ' &nbsp;')
         }
       end
     end
 
     # Send failures email
-    send_failures_email(failed_spec_info, run.id, name)
+    send_failures_email(failed_spec_info, run, name)
   end
 
   private
@@ -170,7 +172,7 @@ class RailsApp < App
   end
 
 
-  def send_failures_email(failed_spec_info, run_id, app_name)
+  def send_failures_email(failed_spec_info, run, app_name)
     return if failed_spec_info.empty?
     raise "No aws-sdk-ses gem found" unless defined?(Aws::SES)
     raise "No ERB gem found" unless defined?(ERB)
@@ -179,25 +181,25 @@ class RailsApp < App
     template_path = File.dirname(__FILE__) + "/failed_specs_email.html.erb"
     html_renderer = ERB.new(IO.read(template_path))
 
-    erb_context = Struct.new(:failed_spec_info, :run_id, :app_name) do
+    timestamp = Time.now.strftime("%A, %d %b %Y %l:%M %p")
+    datestamp = Time.now.strftime("%m/%d/%Y")
+
+    erb_context = Struct.new(:failed_spec_info, :run, :app_name, :timestamp) do
       def get_binding
         binding
       end
-    end.new(failed_spec_info, run_id, app_name)
-
-    datestamp = Time.now.strftime("%m/%d/%Y")
+    end.new(failed_spec_info, run, app_name, timestamp)
 
     response = ses.send_email(
       destination: {
         to_addresses: [
-          # TODO hardcoded email address
-          'devteam@annarbortees.com'
+          run.author_email
         ]
       },
       message: {
         subject: {
           charset: "UTF-8",
-          data: "Spec Failures: #{app_name} #{datestamp}"
+          data: "Spec Failures: #{app_name} #{run.branch} #{datestamp}"
         },
         body: {
           html: {

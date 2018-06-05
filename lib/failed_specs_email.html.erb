@@ -38,28 +38,34 @@
     font-family: monospace;
     padding: 0.5em;
   }
+
+  .monospace {
+    font-family: monospace;
+  }
   </style>
   </head>
 
   <body>
     <h1><%= app_name %></h1>
-    <h2><%= failed_spec_info.size %> failed spec<%= 's' if failed_spec_info.size != 1 %></h2>
+    <h2>
+      <%= failed_spec_info.size %> failed spec<%= 's' if failed_spec_info.size != 1 %>
+      on <%= run.branch %>
+    </h2>
 
-    <p><%= Time.now.strftime("%A, %d %b %Y %l:%M %p") %></p>
+    <p><%= timestamp %></p>
 
-    <%# TODO hardcoded url! %>
     <p class='info'>
-      Build:
-      <a href="http://10.0.1.111/build.php?build_id=<%= run_id %>&app_name=<%= app_name %>" target='_blank'>
-        <%= app_name %> #<%= run_id %>
+      Run:
+      <a href="<%= run.link %>" target='_blank'>
+        <%= app_name %> #<%= run.id %>
       </a>
     </p>
 
-    <ul class='info'>
+    <div class='monospace'>
       <% failed_spec_info.each_with_index do |spec, i| %>
-        <li><a href="#spec-<%= i %>"><%= spec[:file] %></a></li>
+        <%= spec[:file] %><br />
       <% end %>
-    </ul>
+    </div>
 
     <hr />
 

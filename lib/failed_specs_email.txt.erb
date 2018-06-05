@@ -1,0 +1,19 @@
+<%= app_name %>
+<%= failed_spec_info.size %> failed spec<%= 's' if failed_spec_info.size != 1 %> on <%= run.branch %>
+
+<%= timestamp %>
+
+Build: [<%= app_name %> #<%= run.id %>](<%= run.link %>)
+
+<% failed_spec_info.each_with_index do |spec, i| %>
+<%= spec[:file] %>
+<% end %>
+
+-----------------------------------------------------------------------
+
+<% failed_spec_info.each do |spec| %>
+<%= spec[:file].center(80, '=') %>
+<%= spec[:raw_output] %>
+<%= '=' * 80 %>
+
+<% end %>
