@@ -1,0 +1,13 @@
+*<%= app_name %>*
+
+Specs passed on <%= run.branch %>!
+
+Next steps:
+  $ git fetch
+  $ git checkout <%= run.branch %>
+  $ git pull --rebase origin <%= failed_spec_info[:deploy_branch] %>
+
+If there were no changes, merge into master to trigger a deploy!
+  $ git checkout <%= failed_spec_info[:deploy_branch] %><br />
+  $ git rebase <%= run.branch %><br />
+  $ git push

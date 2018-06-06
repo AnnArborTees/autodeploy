@@ -100,11 +100,14 @@ class RailsApp < App
       end
     end
 
-    # Send failures email
-    send_failures_email(failed_spec_info, run, name)
+    # Send results email
+    if failed_spec_info.empty?
+      send_success_email(deploy_branch, run)
+    else
+      send_failures_email(failed_spec_info, run, name)
+    end
   end
 
-  private
 
   def retry_failure!(request, run, deploy_branch)
     failure = request.failure
@@ -172,23 +175,41 @@ class RailsApp < App
   end
 
 
-  def send_failures_email(failed_spec_info, run, app_name)
-    return if failed_spec_info.empty?
+  def send_failures_email(failed_spec_info, run)
+    send_email(
+      failed_spec_info,
+      run,
+      "failed_specs_email",
+      "❌ Specs Failed: #{app_name} #{run.branch} #{datestamp}"
+    )
+  end
+
+  def send_success_email(deploy_branch, run)
+    send_email(
+      { deploy_branch: deploy_branch },
+      run,
+      "passed_specs_email",
+      "✔ Specs Passed: #{app_name} #{run.branch} #{datestamp}"
+    )
+  end
+
+  def send_email(failed_spec_info, run, template_name, subject)
     raise "No aws-sdk-ses gem found" unless defined?(Aws::SES)
     raise "No ERB gem found" unless defined?(ERB)
     ses = Aws::SES::Client.new
 
-    template_path = File.dirname(__FILE__) + "/failed_specs_email.html.erb"
-    html_renderer = ERB.new(IO.read(template_path))
+    html_template_path = File.dirname(__FILE__) + "/templates/#{template_name}.html.erb"
+    text_template_path = File.dirname(__FILE__) + "/templates/#{template_name}.txt.erb"
+    html_renderer = ERB.new(IO.read(html_template_path))
+    text_renderer = ERB.new(IO.read(text_template_path))
 
     timestamp = Time.now.strftime("%A, %d %b %Y %l:%M %p")
-    datestamp = Time.now.strftime("%m/%d/%Y")
 
     erb_context = Struct.new(:failed_spec_info, :run, :app_name, :timestamp) do
       def get_binding
         binding
       end
-    end.new(failed_spec_info, run, app_name, timestamp)
+    end.new(failed_spec_info, run, run.app, timestamp)
 
     response = ses.send_email(
       destination: {
@@ -199,7 +220,7 @@ class RailsApp < App
       message: {
         subject: {
           charset: "UTF-8",
-          data: "Spec Failures: #{app_name} #{run.branch} #{datestamp}"
+          data: subject
         },
         body: {
           html: {
@@ -208,13 +229,18 @@ class RailsApp < App
           },
           text: {
             charset: "UTF-8",
-            data: "Failed specs:\n#{failed_spec_info.map { |f| f[:file] }.join("\n")}"
+            data: text_renderer.result(erb_context.get_binding)
           }
         }
       },
       source: "aatci@annarbortees.com"
     )
 
+    puts "Result of sending #{template_name}:"
     puts JSON.pretty_generate response.to_h
+  end
+
+  def datestamp
+    Time.now.strftime("%m/%d/%Y")
   end
 end

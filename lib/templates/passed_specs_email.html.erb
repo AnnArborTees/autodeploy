@@ -1,0 +1,67 @@
+<!-- DOCTYPE html -->
+<html>
+  <head>
+  <style>
+  a {
+    color: white;
+  }
+  .info a {
+    text-decoration: none;
+    color: maroon;
+  }
+
+  .bold { font-weight: bold; }
+  .underline { text-decoration: underline; }
+  .underline { text-decoration: underline; }
+
+  .black { color: black; }
+  .red { color: #FF0000; }
+  .green { color: #00ff00; }
+  .yellow { color: yellow; }
+  .cyan { color: cyan; }
+  .blue { color: #00a8ff; }
+  .magenta { color: magenta; }
+  .white { color: white; }
+
+  .bg-black { background-color: black; }
+  .bg-red { background-color: #FF0000; }
+  .bg-green { background-color: #00ff00; }
+  .bg-yellow { background-color: yellow; }
+  .bg-cyan { background-color: cyan; }
+  .bg-blue { background-color: blue; }
+  .bg-magenta { background-color: magenta; }
+  .bg-white { background-color: white; }
+
+  .terminal {
+    background-color: #000000;
+    color: #FFF;
+    font-family: monospace;
+    padding: 0.5em;
+  }
+
+  .monospace {
+    font-family: monospace;
+  }
+  </style>
+  </head>
+
+  <body>
+    <h1><%= app_name %></h1>
+    <h2>Specs passed on <%= run.branch %>!</h2>
+
+    <div>
+      <h3>Next steps:</h3>
+      <div class="terminal">
+        $ git fetch<br />
+        $ git checkout <%= run.branch %><br />
+        $ git pull --rebase origin <%= failed_spec_info[:deploy_branch] %>
+      </div>
+      If there were no changes, merge into master to trigger a deploy!
+      <div class="terminal">
+        $ git checkout <%= failed_spec_info[:deploy_branch] %><br />
+        $ git rebase <%= run.branch %><br />
+        $ git push
+      </div>
+    </div>
+  </body>
+</html>
