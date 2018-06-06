@@ -2,12 +2,12 @@
 
 Specs passed on <%= run.branch %>!
 
-Next steps:
+Next steps (to deploy on master):
   $ git fetch
   $ git checkout <%= run.branch %>
-  $ git pull --rebase origin <%= failed_spec_info[:deploy_branch] %>
+  $ git pull --rebase origin master
 
 If there were no changes, merge into master to trigger a deploy!
-  $ git checkout <%= failed_spec_info[:deploy_branch] %><br />
+  $ git checkout master<br />
   $ git rebase <%= run.branch %><br />
   $ git push

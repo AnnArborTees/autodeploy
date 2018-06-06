@@ -50,15 +50,15 @@
     <h2>Specs passed on <%= run.branch %>!</h2>
 
     <div>
-      <h3>Next steps:</h3>
+      <h3>Next steps (to deploy on master):</h3>
       <div class="terminal">
         $ git fetch<br />
         $ git checkout <%= run.branch %><br />
-        $ git pull --rebase origin <%= failed_spec_info[:deploy_branch] %>
+        $ git pull --rebase origin master
       </div>
       If there were no changes, merge into master to trigger a deploy!
       <div class="terminal">
-        $ git checkout <%= failed_spec_info[:deploy_branch] %><br />
+        $ git checkout master<br />
         $ git rebase <%= run.branch %><br />
         $ git push
       </div>
