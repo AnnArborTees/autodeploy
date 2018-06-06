@@ -104,7 +104,7 @@ class RailsApp < App
     if failed_spec_info.empty?
       send_success_email(deploy_branch, run)
     else
-      send_failures_email(failed_spec_info, run, name)
+      send_failures_email(failed_spec_info, run)
     end
   end
 
@@ -180,7 +180,7 @@ class RailsApp < App
       failed_spec_info,
       run,
       "failed_specs_email",
-      "❌ Specs Failed: #{app_name} #{run.branch} #{datestamp}"
+      "❌ Specs Failed: #{run.app} #{run.branch} #{datestamp}"
     )
   end
 
@@ -189,7 +189,7 @@ class RailsApp < App
       { deploy_branch: deploy_branch },
       run,
       "passed_specs_email",
-      "✔ Specs Passed: #{app_name} #{run.branch} #{datestamp}"
+      "✔ Specs Passed: #{run.app} #{run.branch} #{datestamp}"
     )
   end
 
