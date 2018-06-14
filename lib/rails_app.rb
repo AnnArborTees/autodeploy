@@ -169,7 +169,7 @@ class RailsApp < App
 
 
   def parse_failed_spec_file(line)
-    if /rspec\s+(?<failed_spec>[\w\.\/:]+)/ =~ Util.uncolor(line.strip)
+    if /rspec\s+(?<failed_spec>[\w\.\/:\[\]]+)/ =~ Util.uncolor(line.strip)
       failed_spec
     end
   end
