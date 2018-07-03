@@ -5,7 +5,7 @@ class ParallelRailsApp < RailsApp
     [
       %w(bundle install),
       %w(bundle exec rake parallel:create[8]),
-      %w(bundle exec rake db:migrate),
+      %w(bundle exec rake db:create db:reset),
       %w(bundle exec rake parallel:prepare[8])
     ]
   end
