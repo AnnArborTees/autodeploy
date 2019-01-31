@@ -9,6 +9,9 @@ Code that specifies which commands to run is in `lib/*_app.rb`.
 Code for sending output to the database is in `lib/run.rb`.
 
 
+## Add Repository to CI 
+
+Open autodeploy/startup/all.bash and add the repository - you'll also need to specify which branches to listen to
 
 ## Testing (verifying the CI works)
 
