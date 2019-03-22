@@ -8,6 +8,9 @@ Code that specifies which commands to run is in `lib/*_app.rb`.
 
 Code for sending output to the database is in `lib/run.rb`.
 
+To find the production db ssh into an aatci server and run
+`mysql -h db.aatshirtco.com -u autodeploy -p autodeploy`
+the password is listed in autodeploy.json 
 
 ## Add Repository to CI 
 
