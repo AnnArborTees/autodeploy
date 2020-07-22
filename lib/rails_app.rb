@@ -4,6 +4,7 @@ require 'open3'
 class RailsApp < App
   def setup_commands
     [
+      %w(bin/rails db:environment:set RAILS_ENV=test),
       %w(bundle install),
       %w(bundle exec rake db:create db:reset)
     ]
