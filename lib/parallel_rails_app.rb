@@ -3,6 +3,7 @@ require_relative 'rails_app'
 class ParallelRailsApp < RailsApp
   def setup_commands
     [
+      %w(bin/rails db:environment:set RAILS_ENV=test),
       %w(bundle install),
       %w(bundle exec rake parallel:create[8]),
       %w(bundle exec rake db:reset),
